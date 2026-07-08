@@ -1,3 +1,4 @@
+<meta charset="UTF-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -86,6 +87,7 @@
   .ss-cal-cell.today{border-color:var(--amber);border-width:2px;}
   .ss-cal-cell .d{font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:3px;}
   .ss-cal-item{border-radius:4px;padding:1px 5px;margin-bottom:2px;font-size:10.5px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ss-cal-dots{display:none;}
   .ss-taskchip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:3px 10px 3px 6px;font-size:12px;margin:2px;}
   .ss-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   .ss-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.2);}
@@ -133,7 +135,18 @@
   .ss-color-swatch.on{border-color:var(--ink);}
   details.ss-details summary{cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600;padding:6px 0;}
   .ss-link-btn{display:inline-flex;align-items:center;gap:5px;background:var(--teal-bg);color:var(--teal);border:1px solid #BFE0DB;border-radius:6px;padding:6px 10px;font-size:12.5px;text-decoration:none;cursor:pointer;}
+  .ss-daylist-item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px dashed var(--line);cursor:pointer;}
+  .ss-daylist-item:last-child{border-bottom:none;}
+  .ss-daylist-item:hover{background:var(--paper);}
+  .ss-image-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+  .ss-image-thumb{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--paper);flex-shrink:0;}
+  .ss-image-thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;}
+  .ss-image-thumb .ss-x{position:absolute;top:2px;right:2px;background:rgba(20,30,40,.6);color:#fff;border-radius:50%;width:20px;height:20px;padding:0;line-height:20px;font-size:13px;}
+  .ss-image-thumb .ss-x:hover{color:#fff;background:var(--danger);}
+  .ss-image-loading{display:flex;align-items:center;justify-content:center;height:100%;font-size:10px;color:var(--muted);text-align:center;}
   @media(max-width:640px){
+    #ss-root{font-size:15px;}
+    label{font-size:12px;}
     .ss-main{padding:14px 10px 60px 10px;}
     .ss-header{padding:16px 14px 0 14px;}
     .ss-title{font-size:21px;}
@@ -145,10 +158,17 @@
     input[type=text],input[type=number],input[type=date],input[type=time],input[type=url],select,textarea{font-size:16px;padding:9px 10px;}
     .ss-row{gap:8px;}
     .ss-row > *{min-width:100%;}
-    .ss-cal-grid{gap:2px;}
-    .ss-cal-cell{min-height:56px;padding:3px;font-size:9.5px;}
-    .ss-cal-cell .d{font-size:10px;}
-    .ss-cal-item{font-size:8.5px;padding:1px 3px;}
+    table.ss-table{font-size:13px;}
+    table.ss-table th,table.ss-table td{padding:8px 8px;}
+    .ss-taskchip,.ss-skillchip,.ss-chiptoggle{font-size:12.5px;padding:5px 12px;}
+    button.ss-btn.small{padding:7px 13px;font-size:12.5px;}
+    .ss-daylist-item{padding:12px 4px;}
+    .ss-cal-grid{gap:3px;}
+    .ss-cal-cell{min-height:40px;padding:5px 4px;font-size:11px;}
+    .ss-cal-cell .d{font-size:11px;}
+    .ss-cal-item{display:none;}
+    .ss-cal-dots{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px;}
+    .ss-cal-dots .ss-dot{width:7px;height:7px;}
     .ss-cal-toolbar{gap:6px;}
     .ss-modal-overlay{padding:0;align-items:flex-end;}
     .ss-modal{max-width:100%;width:100%;border-radius:14px 14px 0 0;max-height:92vh;overflow-y:auto;padding:16px 14px 20px;}
@@ -179,7 +199,8 @@
   let tab = 'dashboard';
   let calMonth = new Date(); calMonth.setDate(1);
   let calVisible = {}; // calendarId -> bool
-  let eventModal = null; // {mode:'new'|'edit', data:{...}, id?}
+  let eventModal = null; // {mode:'new'|'edit', data:{...}, id?, originalImageKeys?}
+  let dayListModal = null; // dateStr
   let skillFormOpenWorkerId = null;
   let outsourceFormOpenId = null; // reused inside modal context via eventModal
   let chatMessages = [];
@@ -675,7 +696,7 @@
         </div>
         <div class="ss-cal-grid" id="cal-grid"></div>
       </div>
-      ${eventModal ? renderEventModalHtml() : ''}
+      ${eventModal ? renderEventModalHtml() : (dayListModal ? renderDayListModalHtml() : '')}
     `;
     const $legend = document.getElementById('cal-legend');
     $legend.innerHTML = state.calendars.map(c=>`
@@ -713,29 +734,84 @@
       const dateStr = fmtDate(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
       const items = state.projects.filter(p => p.start<=dateStr && dateStr<=p.end && calVisible[p.calendarId]!==false);
       html += `<div class="ss-cal-cell ${dateStr===today?'today':''}" data-day="${dateStr}"><div class="d">${d}</div>
-        ${items.map(p=>`<div class="ss-cal-item" style="background:${calColor(p.calendarId)}" data-open-event="${p.id}" title="${p.name}">${p.startTime?(p.startTime+' '):''}${p.name}${p.url?' 🔗':''}</div>`).join('')}
+        ${items.map(p=>`<div class="ss-cal-item" style="background:${calColor(p.calendarId)}" title="${p.name}">${p.startTime?(p.startTime+' '):''}${p.name}${p.url?' 🔗':''}</div>`).join('')}
+        <div class="ss-cal-dots">${items.map(p=>`<span class="ss-dot" style="background:${calColor(p.calendarId)}"></span>`).join('')}</div>
       </div>`;
     }
     $g.innerHTML = html;
-    $g.querySelectorAll('[data-open-event]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); openEventModal('edit', null, el.dataset.openEvent); });
-    $g.querySelectorAll('.ss-cal-cell').forEach(cell=>cell.onclick=()=>{ openEventModal('new', cell.dataset.day); });
+    $g.querySelectorAll('.ss-cal-cell').forEach(cell=>cell.onclick=()=>{ openDayList(cell.dataset.day); });
 
     if(eventModal) attachEventModalHandlers();
+    else if(dayListModal) attachDayListHandlers();
+  }
+
+  function dayLabel(dateStr){
+    const dows = ['日','月','火','水','木','金','土'];
+    const d = new Date(dateStr+'T00:00:00');
+    return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${dows[d.getDay()]}）`;
+  }
+  function openDayList(dateStr){ dayListModal = dateStr; eventModal = null; renderCalendar(); }
+  function closeDayList(){ dayListModal = null; renderCalendar(); }
+  function renderDayListModalHtml(){
+    const dateStr = dayListModal;
+    const items = state.projects.filter(p => p.start<=dateStr && dateStr<=p.end && calVisible[p.calendarId]!==false)
+      .sort((a,b)=> (a.startTime||'')<(b.startTime||'') ? -1 : 1);
+    return `
+    <div class="ss-modal-overlay" id="daylist-overlay">
+      <div class="ss-modal">
+        <div class="ss-modal-head">
+          <h3>${dayLabel(dateStr)}</h3>
+          <button class="ss-x" id="daylist-close" style="font-size:20px;">×</button>
+        </div>
+        <button class="ss-btn amber small" id="daylist-add" style="margin-bottom:10px;">＋ この日に予定を追加</button>
+        ${items.length===0 ? `<div class="ss-empty">この日の予定はありません。</div>` :
+          items.map(p=>`
+            <div class="ss-daylist-item" data-open-event="${p.id}">
+              <span class="ss-dot" style="background:${calColor(p.calendarId)}"></span>
+              <div style="flex:1;">
+                <b>${p.startTime?(p.startTime+' '):''}${p.name}</b>
+                <div class="mono" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</div>
+                <div style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}</div>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    </div>`;
+  }
+  function attachDayListHandlers(){
+    document.getElementById('daylist-overlay').addEventListener('click', e=>{ if(e.target.id==='daylist-overlay') closeDayList(); });
+    document.getElementById('daylist-close').onclick = closeDayList;
+    document.getElementById('daylist-add').onclick = ()=>{ openEventModal('new', dayListModal); };
+    document.querySelectorAll('[data-open-event]').forEach(el=>el.onclick=()=>{ openEventModal('edit', null, el.dataset.openEvent); });
   }
 
   function openEventModal(mode, dateStr, projectId){
+    dayListModal = null;
     if(mode==='new'){
       eventModal = { mode:'new', data:{
         name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
         requiredLevel:3, start:dateStr, end:dateStr, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
         assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
-        calendarId: mainCalendarId(),
-      }};
+        calendarId: mainCalendarId(), images:[],
+      }, originalImageKeys:[] };
     } else {
       const p = state.projects.find(p=>p.id===projectId);
-      eventModal = { mode:'edit', id:projectId, data: JSON.parse(JSON.stringify(p)) };
+      eventModal = { mode:'edit', id:projectId, data: JSON.parse(JSON.stringify(p)), originalImageKeys: (p.images||[]).map(im=>im.key) };
+      eventModal.data.images = eventModal.data.images || [];
     }
     renderCalendar();
+    fetchEventImages();
+  }
+  async function fetchEventImages(){
+    if(!eventModal) return;
+    const list = eventModal.data.images||[];
+    for(const im of list){
+      if(im.dataUrl || !im.key) continue;
+      try{
+        const val = await apiGet(im.key);
+        if(val && eventModal && eventModal.data.images.includes(im)){ im.dataUrl = val.dataUrl; renderEvImages(); }
+      }catch(e){ /* ignore, thumbnail stays as loading state */ }
+    }
   }
   function closeEventModal(){ eventModal=null; renderCalendar(); }
 
@@ -795,6 +871,13 @@
           <div class="ss-field"><label>メモ</label><textarea id="ev-memo" placeholder="施工内容、撤去品、注意点など自由に">${d.workDetail||''}</textarea></div>
         </div>
 
+        <div class="ss-modal-section">
+          <div class="ss-subhead" style="margin-top:0;">写真</div>
+          <div id="ev-images" class="ss-image-grid"></div>
+          <input type="file" id="ev-image-input" accept="image/*" multiple>
+          <div class="ss-hint">写真は自動的に圧縮して保存されます（複数枚可）。保存ボタンを押すまでは確定しません。</div>
+        </div>
+
         <details class="ss-details">
           <summary>詳細設定（自動割当用：機器種類・作業内容・必要人数・金額）</summary>
           <div class="ss-modal-section">
@@ -822,8 +905,66 @@
     </div>`;
   }
 
+  function renderEvImages(){
+    const $imgs = document.getElementById('ev-images');
+    if(!$imgs || !eventModal) return;
+    const d = eventModal.data;
+    $imgs.innerHTML = (d.images||[]).map(im=>`
+      <div class="ss-image-thumb" data-img-id="${im.id}">
+        ${im.dataUrl ? `<img src="${im.dataUrl}" data-view-img="${im.id}">` : `<div class="ss-image-loading">読込中…</div>`}
+        <button class="ss-x" data-del-img="${im.id}">×</button>
+      </div>
+    `).join('') || '<span class="ss-empty" style="padding:0;">写真はまだありません</span>';
+    $imgs.querySelectorAll('[data-del-img]').forEach(b=>b.onclick=()=>{
+      const id = b.dataset.delImg;
+      eventModal.data.images = (eventModal.data.images||[]).filter(i=>i.id!==id);
+      renderEvImages();
+    });
+    $imgs.querySelectorAll('[data-view-img]').forEach(img=>img.onclick=()=>{ window.open(img.src, '_blank'); });
+  }
+  function resizeImageToDataUrl(file, maxDim, quality){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=>{
+          let {width, height} = img;
+          if(width>maxDim || height>maxDim){
+            const ratio = Math.min(maxDim/width, maxDim/height);
+            width = Math.round(width*ratio); height = Math.round(height*ratio);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  async function apiDeleteKey(key){
+    try{ await fetch('/.netlify/functions/storage?key='+encodeURIComponent(key), {method:'DELETE'}); }
+    catch(e){ console.error('delete blob failed', e); }
+  }
+
   function attachEventModalHandlers(){
     const d = eventModal.data;
+    renderEvImages();
+    document.getElementById('ev-image-input').addEventListener('change', async(e)=>{
+      const files = Array.from(e.target.files||[]);
+      e.target.value = '';
+      for(const file of files){
+        try{
+          const dataUrl = await resizeImageToDataUrl(file, 1600, 0.75);
+          d.images = d.images||[];
+          d.images.push({id: uid('imgid'), name: file.name, dataUrl});
+          renderEvImages();
+        }catch(err){ toast('画像の読み込みに失敗しました'); }
+      }
+    });
     document.getElementById('ev-overlay').addEventListener('click', (e)=>{ if(e.target.id==='ev-overlay') closeEventModal(); });
     document.getElementById('ev-close').onclick = closeEventModal;
     document.getElementById('ev-cancel').onclick = closeEventModal;
@@ -883,20 +1024,37 @@
       const salesRep = document.getElementById('ev-sales').value.trim();
       const budgetAmount = Number(document.getElementById('ev-budget').value)||0;
       const actualAmount = Number(document.getElementById('ev-actual').value)||0;
-      const payload = {
-        name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||3,
-        start, end, allDay: !(startTime||endTime), startTime, endTime, url, requiredCount, assignedWorkerIds: d.assignedWorkerIds||[], outsourceCount: 0,
-        vendorEntries: d.vendorEntries||[], budgetAmount, actualAmount, calendarId,
-      };
-      if(eventModal.mode==='new'){
-        state.projects.push(Object.assign({id:uid('p'), createdAt:new Date().toISOString()}, payload));
-      } else {
-        const p = state.projects.find(p=>p.id===eventModal.id);
-        Object.assign(p, payload);
+      const saveBtn = document.getElementById('ev-save');
+      saveBtn.disabled = true; saveBtn.textContent = '保存中…';
+      try{
+        const images = [];
+        for(const im of (d.images||[])){
+          if(im.key){ images.push({id: im.id, key: im.key, name: im.name}); continue; }
+          const key = uid('img');
+          await apiSet(key, {dataUrl: im.dataUrl, name: im.name});
+          images.push({id: im.id, key, name: im.name});
+        }
+        const removedKeys = (eventModal.originalImageKeys||[]).filter(k=>!images.some(im=>im.key===k));
+        for(const key of removedKeys){ await apiDeleteKey(key); }
+        const payload = {
+          name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||3,
+          start, end, allDay: !(startTime||endTime), startTime, endTime, url, requiredCount, assignedWorkerIds: d.assignedWorkerIds||[], outsourceCount: 0,
+          vendorEntries: d.vendorEntries||[], budgetAmount, actualAmount, calendarId, images,
+        };
+        if(eventModal.mode==='new'){
+          state.projects.push(Object.assign({id:uid('p'), createdAt:new Date().toISOString()}, payload));
+        } else {
+          const p = state.projects.find(p=>p.id===eventModal.id);
+          Object.assign(p, payload);
+        }
+        await saveProjects();
+        closeEventModal();
+        toast('保存しました');
+      }catch(err){
+        console.error('event save failed', err);
+        toast('⚠ 保存に失敗しました。通信環境をご確認ください');
+        saveBtn.disabled = false; saveBtn.textContent = '保存';
       }
-      await saveProjects();
-      closeEventModal();
-      toast('保存しました');
     };
   }
 
