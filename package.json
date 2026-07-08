@@ -1,0 +1,10 @@
+{
+  "name": "site-schedule-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "現場スケジュール・残業管理システム（Netlify Functions + Blobs + AI Gateway版）",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@anthropic-ai/sdk": "^0.32.0"
+  }
+}

@@ -1,0 +1,1095 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#16232F;--navy-2:#1F3040;--paper:#F3F5F4;--card:#FFFFFF;--line:#DBE1E2;--ink:#1B2530;--muted:#748089;
+    --amber:#E7A23A;--amber-deep:#B87A1E;--danger:#D2503C;--danger-bg:#FBEAE6;--ok:#3E8E63;--ok-bg:#E7F3EB;
+    --violet:#6A4A8A;--violet-bg:#F1E7F5;--teal:#2E7D74;--teal-bg:#E4F1EF;--radius:10px;
+  }
+  *{box-sizing:border-box;}
+  #ss-root{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100%;padding:0;font-size:14px;line-height:1.5;}
+  #ss-root .mono{font-family:'JetBrains Mono',monospace;}
+  #ss-root h1,#ss-root h2,#ss-root h3,#ss-root .disp{font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em;}
+  .ss-header{
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 28px),
+      linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);
+    color:#EFF3F5;padding:22px 24px 0 24px;border-bottom:3px solid var(--amber);
+  }
+  .ss-header-top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .ss-title{font-size:26px;font-weight:700;text-transform:uppercase;margin:0;}
+  .ss-title span{color:var(--amber);}
+  .ss-sub{font-size:12px;color:#B9C4CB;font-family:'JetBrains Mono',monospace;letter-spacing:.03em;}
+  .ss-tabs{display:flex;gap:2px;overflow-x:auto;}
+  .ss-tab{padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14.5px;color:#C3CDD3;background:transparent;border:none;cursor:pointer;border-radius:8px 8px 0 0;white-space:nowrap;letter-spacing:.03em;}
+  .ss-tab.active{background:var(--paper);color:var(--navy);}
+  .ss-tab:not(.active):hover{background:rgba(255,255,255,0.08);color:#fff;}
+  .ss-main{padding:22px 24px 60px 24px;max-width:1220px;margin:0 auto;}
+  .ss-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;}
+  .ss-card-title{font-size:13px;text-transform:uppercase;color:var(--muted);font-weight:600;letter-spacing:.08em;margin:0 0 14px 0;padding-bottom:8px;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .ss-card-title small{font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--muted);}
+  .ss-subhead{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13.5px;color:var(--navy);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.04em;}
+  .ss-grid{display:grid;gap:14px;}
+  .ss-grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .ss-grid.cols-4{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:800px){.ss-grid.cols-3,.ss-grid.cols-4{grid-template-columns:1fr 1fr;}}
+  @media(max-width:520px){.ss-grid.cols-3,.ss-grid.cols-4{grid-template-columns:1fr;}}
+  .ss-stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 14px;}
+  .ss-stat b{display:block;font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--navy);}
+  .ss-stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .ss-alert{display:flex;align-items:center;gap:10px;background:var(--danger-bg);color:#8A2F1F;border:1px solid #EFC3B8;border-radius:8px;padding:9px 13px;margin-bottom:8px;font-size:13px;}
+  .ss-alert b{font-family:'JetBrains Mono',monospace;}
+  .ss-empty{color:var(--muted);font-size:13px;padding:14px 4px;}
+  input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{font-family:'Inter',sans-serif;border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px;background:#fff;color:var(--ink);width:100%;}
+  textarea{resize:vertical;min-height:60px;font-family:'Inter',sans-serif;font-size:13px;}
+  label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;}
+  .ss-field{margin-bottom:10px;}
+  .ss-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+  .ss-row > *{flex:1;min-width:120px;}
+  button.ss-btn{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.03em;background:var(--navy);color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:15px;cursor:pointer;}
+  button.ss-btn:hover{background:var(--navy-2);}
+  button.ss-btn.amber{background:var(--amber);color:#3A2600;}
+  button.ss-btn.amber:hover{background:var(--amber-deep);color:#fff;}
+  button.ss-btn.violet{background:var(--violet);color:#fff;}
+  button.ss-btn.violet:hover{background:#553870;}
+  button.ss-btn.teal{background:var(--teal);color:#fff;}
+  button.ss-btn.teal:hover{background:#245F58;}
+  button.ss-btn.danger{background:var(--danger);color:#fff;}
+  button.ss-btn.danger:hover{background:#A83A29;}
+  button.ss-btn.ghost{background:transparent;color:var(--navy);border:1px solid var(--line);}
+  button.ss-btn.ghost:hover{background:var(--paper);}
+  button.ss-btn.small{padding:5px 10px;font-size:12px;border-radius:5px;}
+  button.ss-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;}
+  button.ss-x:hover{color:var(--danger);}
+  table.ss-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.ss-table th{text-align:left;font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;font-size:11px;color:var(--muted);letter-spacing:.05em;padding:6px 8px;border-bottom:1px solid var(--line);}
+  table.ss-table td{padding:7px 8px;border-bottom:1px solid #EEF1F1;vertical-align:top;}
+  .ss-table-wrap{overflow-x:auto;}
+  .ss-pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+  .ss-pill.emp{background:#E4EAF3;color:#2A4A7A;}
+  .ss-pill.out{background:#F1E7F5;color:#6A3A82;}
+  .ss-badge{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:2px solid var(--navy);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;color:var(--navy);flex-shrink:0;}
+  .ss-badge.warn{border-color:var(--danger);color:var(--danger);}
+  .ss-cand{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px dashed var(--line);}
+  .ss-cand:last-child{border-bottom:none;}
+  .ss-cand .name{font-weight:600;flex:1;}
+  .ss-cand .meta{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .ss-bar{height:6px;border-radius:3px;background:#EDEFEF;overflow:hidden;width:70px;flex-shrink:0;}
+  .ss-bar i{display:block;height:100%;background:var(--ok);}
+  .ss-bar i.warn{background:var(--danger);}
+  .ss-shortage{background:#FCF3E4;border:1px solid #EFD8A8;border-radius:8px;padding:10px 13px;font-size:13px;color:#7A5613;margin-top:8px;}
+  .ss-cal-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+  .ss-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .ss-cal-dow{font-size:11px;text-align:center;color:var(--muted);text-transform:uppercase;font-weight:600;padding-bottom:4px;}
+  .ss-cal-cell{min-height:82px;border:1px solid var(--line);border-radius:6px;padding:4px;font-size:11px;background:#fff;cursor:pointer;}
+  .ss-cal-cell:hover{border-color:var(--amber);}
+  .ss-cal-cell.today{border-color:var(--amber);border-width:2px;}
+  .ss-cal-cell .d{font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:3px;}
+  .ss-cal-item{border-radius:4px;padding:1px 5px;margin-bottom:2px;font-size:10.5px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ss-taskchip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:3px 10px 3px 6px;font-size:12px;margin:2px;}
+  .ss-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .ss-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+  .ss-outsource-row{background:var(--violet-bg);border-radius:8px;padding:10px 12px;margin-top:6px;}
+  .ss-vendor-tag{display:inline-block;background:var(--violet-bg);color:var(--violet);border-radius:5px;padding:2px 7px;font-size:11px;margin:2px 3px 2px 0;}
+  .ss-import-box{background:var(--paper);border:1px dashed var(--line);border-radius:8px;padding:12px 14px;}
+  .ss-hint{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.6;}
+  .ss-worker-card{border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-bottom:10px;background:var(--paper);}
+  .ss-worker-card .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .ss-worker-card .top .wname{font-weight:700;font-size:15px;flex:1;min-width:100px;}
+  .ss-skillchip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 6px 3px 10px;font-size:12px;margin:2px;}
+  .ss-skillchip .lv{background:var(--navy);color:#fff;border-radius:50%;width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+  .ss-add-skill-form{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;background:#fff;border:1px dashed var(--line);border-radius:7px;padding:8px;}
+  .ss-add-skill-form select,.ss-add-skill-form input{width:auto;min-width:90px;flex:1;}
+  .ss-chiptoggle{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 12px;font-size:12px;margin:2px;cursor:pointer;user-select:none;}
+  .ss-chiptoggle.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .ss-chat-wrap{display:flex;flex-direction:column;height:520px;}
+  .ss-chat-log{flex:1;overflow-y:auto;padding:6px 2px;display:flex;flex-direction:column;gap:10px;}
+  .ss-msg{max-width:80%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.6;}
+  .ss-msg.user{align-self:flex-end;background:var(--navy);color:#fff;border-bottom-right-radius:3px;}
+  .ss-msg.ai{align-self:flex-start;background:var(--paper);border:1px solid var(--line);border-bottom-left-radius:3px;}
+  .ss-msg.system{align-self:center;background:transparent;color:var(--muted);font-size:11.5px;}
+  .ss-chat-input-row{display:flex;gap:8px;margin-top:10px;}
+  .ss-chat-input-row input{flex:1;}
+  .ss-proposal-card{background:#fff;border:1px solid var(--amber);border-radius:10px;padding:12px 14px;align-self:flex-start;max-width:92%;}
+  .ss-proposal-card .ptitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--navy);margin-bottom:6px;}
+  .ss-typing{align-self:flex-start;color:var(--muted);font-size:12px;padding:4px 8px;}
+  .ss-cal-legend{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .ss-cal-legend-item{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 6px;font-size:12px;cursor:pointer;background:#fff;}
+  .ss-cal-legend-item.off{opacity:.35;}
+  .ss-modal-overlay{position:fixed;inset:0;background:rgba(20,30,40,0.55);display:flex;align-items:flex-start;justify-content:center;padding:30px 14px;overflow-y:auto;z-index:200;}
+  .ss-modal{background:#fff;border-radius:12px;max-width:540px;width:100%;padding:20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .ss-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .ss-modal-head h3{margin:0;font-size:19px;font-family:'Barlow Condensed',sans-serif;}
+  .ss-modal-section{padding:10px 0;border-bottom:1px dashed var(--line);}
+  .ss-modal-section:last-child{border-bottom:none;}
+  .ss-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+  .ss-switch{width:40px;height:22px;border-radius:20px;background:#DADFE1;position:relative;cursor:pointer;flex-shrink:0;}
+  .ss-switch.on{background:var(--ok);}
+  .ss-switch .knob{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .15s;}
+  .ss-switch.on .knob{left:20px;}
+  .ss-modal-actions{display:flex;justify-content:space-between;margin-top:14px;gap:8px;}
+  .ss-color-swatch{width:22px;height:22px;border-radius:50%;display:inline-block;cursor:pointer;border:2px solid transparent;margin:2px;}
+  .ss-color-swatch.on{border-color:var(--ink);}
+  details.ss-details summary{cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600;padding:6px 0;}
+  .ss-link-btn{display:inline-flex;align-items:center;gap:5px;background:var(--teal-bg);color:var(--teal);border:1px solid #BFE0DB;border-radius:6px;padding:6px 10px;font-size:12.5px;text-decoration:none;cursor:pointer;}
+  @media(max-width:640px){
+    .ss-main{padding:14px 10px 60px 10px;}
+    .ss-header{padding:16px 14px 0 14px;}
+    .ss-title{font-size:21px;}
+    .ss-card{padding:14px 12px;margin-bottom:12px;}
+    .ss-tab{padding:9px 12px;font-size:13px;}
+    .ss-grid.cols-3,.ss-grid.cols-4{grid-template-columns:1fr 1fr;gap:8px;}
+    .ss-stat{padding:9px 10px;}
+    .ss-stat b{font-size:17px;}
+    input[type=text],input[type=number],input[type=date],input[type=time],input[type=url],select,textarea{font-size:16px;padding:9px 10px;}
+    .ss-row{gap:8px;}
+    .ss-row > *{min-width:100%;}
+    .ss-cal-grid{gap:2px;}
+    .ss-cal-cell{min-height:56px;padding:3px;font-size:9.5px;}
+    .ss-cal-cell .d{font-size:10px;}
+    .ss-cal-item{font-size:8.5px;padding:1px 3px;}
+    .ss-cal-toolbar{gap:6px;}
+    .ss-modal-overlay{padding:0;align-items:flex-end;}
+    .ss-modal{max-width:100%;width:100%;border-radius:14px 14px 0 0;max-height:92vh;overflow-y:auto;padding:16px 14px 20px;}
+    .ss-chat-wrap{height:72vh;}
+    .ss-msg{max-width:92%;}
+    .ss-worker-card .top{gap:6px;}
+    .ss-worker-card .top select,.ss-worker-card .top input{width:auto;flex:1;min-width:50px;}
+  }
+</style>
+<div id="ss-root">
+  <div class="ss-header">
+    <div class="ss-header-top">
+      <div>
+        <h1 class="ss-title">現場<span>スケジュール</span>管理</h1>
+        <div class="ss-sub">SITE OPS &amp; OVERTIME CONTROL — チーム共有データ</div>
+      </div>
+    </div>
+    <div class="ss-tabs" id="ss-tabs"></div>
+  </div>
+  <div class="ss-main" id="ss-main"></div>
+</div>
+
+<script>
+(function(){
+  const COLORS = ['#3E6E9E','#B87A1E','#5E8E5A','#8A5AA0','#C05C5C','#3A9E92','#9E7A3A'];
+  const CAL_COLORS = ['#3E6E9E','#B87A1E','#5E8E5A','#8A5AA0','#C05C5C','#2E7D74','#9E7A3A','#4A5568'];
+  let state = { equipmentTypes: [], workTypes: [], workers: [], vendors: [], projects: [], templates: [], calendars: [] };
+  let tab = 'dashboard';
+  let calMonth = new Date(); calMonth.setDate(1);
+  let calVisible = {}; // calendarId -> bool
+  let eventModal = null; // {mode:'new'|'edit', data:{...}, id?}
+  let skillFormOpenWorkerId = null;
+  let outsourceFormOpenId = null; // reused inside modal context via eventModal
+  let chatMessages = [];
+  let chatApiHistory = [];
+  let chatFields = {};
+  let chatBusy = false;
+  let chatPendingProposal = null;
+
+  const $main = document.getElementById('ss-main');
+  const $tabs = document.getElementById('ss-tabs');
+
+  function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function fmtDate(d){ return d.toISOString().slice(0,10); }
+  function overlap(aS,aE,bS,bE){ return aS<=bE && bS<=aE; }
+  function eqName(id){ const e=state.equipmentTypes.find(e=>e.id===id); return e?e.name:''; }
+  function eqColorIdx(id){ const i=state.equipmentTypes.findIndex(e=>e.id===id); return i<0?'#9AA5AB':COLORS[i%COLORS.length]; }
+  function wtName(id){ const w=state.workTypes.find(w=>w.id===id); return w?w.name:''; }
+  function worker(id){ return state.workers.find(w=>w.id===id); }
+  function calendar(id){ return state.calendars.find(c=>c.id===id); }
+  function calColor(id){ const c=calendar(id); return c?c.color:'#9AA5AB'; }
+  function calName(id){ const c=calendar(id); return c?c.name:'未分類'; }
+  function yen(n){ return '¥' + (Number(n)||0).toLocaleString(); }
+  function comboLabel(p){
+    if(!p.equipmentTypeId) return '';
+    return eqName(p.equipmentTypeId) + (p.workTypeId?('／'+wtName(p.workTypeId)):'');
+  }
+  function toast(msg){
+    const t=document.createElement('div'); t.className='ss-toast'; t.textContent=msg;
+    document.body.appendChild(t); setTimeout(()=>t.remove(),2200);
+  }
+
+  async function apiGet(key){
+    const r = await fetch('/.netlify/functions/storage?key='+encodeURIComponent(key));
+    if(!r.ok) throw new Error('storage get failed');
+    const j = await r.json();
+    return j.value;
+  }
+  async function apiSet(key, value){
+    const r = await fetch('/.netlify/functions/storage', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key, value})
+    });
+    if(!r.ok) throw new Error('storage set failed');
+  }
+
+  async function loadAll(){
+    const master = await apiGet('master-data-v4').catch(()=>null);
+    if(master){
+      state.equipmentTypes = master.equipmentTypes || [];
+      state.workTypes = master.workTypes || [];
+      state.workers = master.workers || [];
+      state.vendors = master.vendors || [];
+      state.templates = master.templates || [];
+      state.calendars = master.calendars || [];
+    } else {
+      state.equipmentTypes = ['製氷機','縦型冷蔵庫','エアコン','洗浄機'].map(n=>({id:uid('eq'),name:n}));
+      state.workTypes = ['新規設置','入替え','廃棄','修理'].map(n=>({id:uid('wt'),name:n}));
+      state.workers = [];
+      state.vendors = [];
+      state.templates = [];
+      state.calendars = [
+        {id:uid('cal'), name:'メイン', color:CAL_COLORS[0]},
+        {id:uid('cal'), name:'営業', color:CAL_COLORS[1]},
+        {id:uid('cal'), name:'現場以外', color:CAL_COLORS[2]},
+      ];
+      await saveMaster();
+    }
+    // 旧バージョンで「現場」という名前だった場合は「現場以外」へ移行
+    const oldGenba = state.calendars.find(c=>c.name==='現場');
+    if(oldGenba && !state.calendars.some(c=>c.name==='現場以外')){
+      oldGenba.name = '現場以外';
+      await saveMaster();
+    }
+    state.calendars.forEach(c=>{ if(!(c.id in calVisible)) calVisible[c.id]=true; });
+    const projects = await apiGet('projects-v4').catch(()=>null);
+    if(projects){
+      state.projects = projects.projects || [];
+    } else {
+      state.projects = [];
+      await saveProjects();
+    }
+  }
+  async function saveMaster(){
+    try{ await apiSet('master-data-v4', {equipmentTypes:state.equipmentTypes, workTypes:state.workTypes, workers:state.workers, vendors:state.vendors, templates:state.templates, calendars:state.calendars}); }
+    catch(e){ console.error('save master failed', e); toast('⚠ 保存に失敗しました。通信環境をご確認ください'); }
+  }
+  async function saveProjects(){
+    try{ await apiSet('projects-v4', {projects:state.projects}); }
+    catch(e){ console.error('save projects failed', e); toast('⚠ 保存に失敗しました。通信環境をご確認ください'); }
+  }
+  function mainCalendarId(){
+    const m = state.calendars.find(c=>c.name==='メイン');
+    return m ? m.id : (state.calendars[0] ? state.calendars[0].id : null);
+  }
+
+  // ---------- scoring engine ----------
+  function isAvailable(workerId, start, end, excludeProjectId){
+    return !state.projects.some(p => p.id!==excludeProjectId && (p.assignedWorkerIds||[]).includes(workerId) && overlap(p.start,p.end,start,end));
+  }
+  function skillFor(w, equipmentTypeId, workTypeId){
+    const entries = (w.skills||[]).filter(s=>s.equipmentTypeId===equipmentTypeId && s.workTypeId===workTypeId);
+    if(entries.length===0) return 0;
+    return Math.max(...entries.map(e=>e.level));
+  }
+  function suggest({equipmentTypeId, workTypeId, requiredLevel, start, end, requiredCount}, excludeProjectId, excludeWorkerIds){
+    excludeWorkerIds = excludeWorkerIds || [];
+    const candidates = state.workers.filter(w=>!excludeWorkerIds.includes(w.id)).map(w=>{
+      const skill = skillFor(w, equipmentTypeId, workTypeId);
+      const available = isAvailable(w.id, start, end, excludeProjectId||null);
+      const cap = w.maxOvertimeHours || 45;
+      const overtimeRatio = Math.min(1.5, (w.overtimeHours||0)/cap);
+      const qualified = skill >= requiredLevel;
+      const score = skill*20 - overtimeRatio*30;
+      return {worker:w, skill, available, qualified, overtimeRatio, score};
+    });
+    const usable = candidates.filter(c=>c.available).sort((a,b)=> (b.qualified-a.qualified) || (b.score-a.score));
+    const picked = usable.slice(0, requiredCount);
+    const shortage = Math.max(0, requiredCount - picked.length);
+    return {picked, shortage, candidates};
+  }
+  function vendorsForCombo(equipmentTypeId, workTypeId){
+    return state.vendors.filter(v => (v.equipmentTypeIds||[]).includes(equipmentTypeId) && (v.workTypeIds||[]).includes(workTypeId));
+  }
+  function findTemplate(eq, wt){ return state.templates.find(t=>t.equipmentTypeId===eq && t.workTypeId===wt); }
+  function addDays(dateStr, n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return fmtDate(d); }
+  function templateLabel(t){ return `${eqName(t.equipmentTypeId)}／${wtName(t.workTypeId)}`; }
+  async function resolveNamedWorkers(names, equipmentTypeId, workTypeId){
+    if(!names || names.length===0) return [];
+    let created = false;
+    const resolved = names.map(nameRaw=>{
+      const name = String(nameRaw).trim();
+      if(!name) return null;
+      let w = state.workers.find(w=>w.name===name);
+      if(!w){
+        w = {id:uid('w'), name, type:'社員', skills: equipmentTypeId&&workTypeId ? [{id:uid('sk'), equipmentTypeId, workTypeId, level:3}] : [], overtimeHours:0, maxOvertimeHours:45};
+        state.workers.push(w);
+        created = true;
+      }
+      return w;
+    }).filter(Boolean);
+    if(created) await saveMaster();
+    return resolved;
+  }
+
+  // ---------- import ----------
+  function parseDateLoose(str){
+    if(!str) return null;
+    str = str.trim();
+    let m = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if(!m) return null;
+    return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  }
+  function parseAmount(str){ if(!str) return 0; const v=parseInt(String(str).replace(/[¥,\s]/g,''),10); return isNaN(v)?0:v; }
+  function parseImportText(text){ return text.split(/\r?\n/).filter(l=>l.trim().length>0).map(l => l.includes('\t') ? l.split('\t') : l.split(',')); }
+  async function runImport(text){
+    let rows = parseImportText(text);
+    if(rows.length && /施行日|物件名|日付/.test(rows[0].join(''))) rows = rows.slice(1);
+    let count = 0;
+    rows.forEach(cols=>{
+      const [dateRaw, salesRep, name, address, workDetail, budgetRaw, actualRaw] = cols;
+      if(!name || !name.trim()) return;
+      const d = parseDateLoose(dateRaw) || todayStr();
+      state.projects.push({
+        id: uid('p'), name: name.trim(), address:(address||'').trim(), salesRep:(salesRep||'').trim(),
+        workDetail:(workDetail||'').trim(), equipmentTypeId:null, workTypeId:null,
+        requiredLevel:1, start:d, end:d, allDay:true, requiredCount:1, assignedWorkerIds:[], outsourceCount:0,
+        vendorEntries:[], budgetAmount:parseAmount(budgetRaw), actualAmount:parseAmount(actualRaw),
+        calendarId: mainCalendarId(), createdAt:new Date().toISOString(),
+      });
+      count++;
+    });
+    await saveProjects();
+    toast(`${count}件を取り込みました`);
+    renderCalendar();
+  }
+
+  function renderTabs(){
+    const tabs = [['dashboard','ダッシュボード'],['chat','AIチャットで案件登録'],['workers','人員・スキル管理'],['vendors','外注先管理'],['calendar','カレンダー']];
+    $tabs.innerHTML = tabs.map(([id,label])=>`<button class="ss-tab ${tab===id?'active':''}" data-tab="${id}">${label}</button>`).join('');
+    $tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; eventModal=null; render(); });
+  }
+  function render(){
+    renderTabs();
+    if(tab==='dashboard') renderDashboard();
+    else if(tab==='chat') renderChat();
+    else if(tab==='workers') renderWorkers();
+    else if(tab==='vendors') renderVendors();
+    else if(tab==='calendar') renderCalendar();
+  }
+
+  // ---------- DASHBOARD ----------
+  function renderDashboard(){
+    const over = state.workers.filter(w => (w.overtimeHours||0) > (w.maxOvertimeHours||45));
+    const today = todayStr();
+    const todays = state.projects.filter(p => p.start<=today && today<=p.end);
+    const thisMonth = today.slice(0,7);
+    const monthlyOutsourceCost = state.projects.filter(p=>(p.start||'').slice(0,7)===thisMonth)
+      .reduce((s,p)=> s + (p.vendorEntries||[]).reduce((s2,v)=>s2+(v.amount||0),0), 0);
+
+    $main.innerHTML = `
+      <div class="ss-grid cols-4">
+        <div class="ss-stat"><b class="mono">${state.workers.length}</b><span>登録人員数</span></div>
+        <div class="ss-stat"><b class="mono">${state.projects.length}</b><span>登録予定数</span></div>
+        <div class="ss-stat"><b class="mono">${state.calendars.length}</b><span>カレンダー数</span></div>
+        <div class="ss-stat"><b class="mono">${yen(monthlyOutsourceCost)}</b><span>今月の外注費用</span></div>
+      </div>
+      <div class="ss-card">
+        <div class="ss-card-title">残業アラート（上限超過）</div>
+        ${over.length===0 ? `<div class="ss-empty">現在、上限を超えている人員はいません。</div>` :
+          over.map(w=>`<div class="ss-alert">⚠ <b>${w.name}</b> の残業時間が <b>${w.overtimeHours}h</b>（上限 ${w.maxOvertimeHours||45}h）に達しています。</div>`).join('')}
+      </div>
+      <div class="ss-card">
+        <div class="ss-card-title">本日の予定（${today}）</div>
+        ${todays.length===0 ? `<div class="ss-empty">本日の予定はありません。</div>` :
+          todays.map(p=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);">
+              <span class="ss-dot" style="background:${calColor(p.calendarId)}"></span>
+              <div style="flex:1;">
+                <b>${p.startTime?(p.startTime+' '):''}${p.name}</b> <span class="mono" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</span><br>
+                <span style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}${(p.vendorEntries||[]).length?` + 外注:${p.vendorEntries.map(v=>v.vendorName).join('、')}`:''}</span>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    `;
+  }
+
+  // ---------- WORKERS (含む 分類マスタ・テンプレート) ----------
+  function renderWorkers(){
+    $main.innerHTML = `
+      <div class="ss-card">
+        <div class="ss-card-title">分類マスタ</div>
+        <div class="ss-subhead">機器種類</div>
+        <div id="ss-eq"></div>
+        <div class="ss-row" style="margin-top:6px;"><input type="text" id="new-eq" placeholder="例：製氷機"><button class="ss-btn ghost small" id="add-eq" style="flex:0 0 auto;">追加</button></div>
+        <div class="ss-subhead">作業内容</div>
+        <div id="ss-wt"></div>
+        <div class="ss-row" style="margin-top:6px;"><input type="text" id="new-wt" placeholder="例：入替え"><button class="ss-btn ghost small" id="add-wt" style="flex:0 0 auto;">追加</button></div>
+      </div>
+
+      <div class="ss-card">
+        <div class="ss-card-title">工事内容テンプレート <small>機器×作業内容ごとの標準時間・標準人数。AIチャットの提案にも使われます</small></div>
+        <div class="ss-row">
+          <select id="tp-eq">${state.equipmentTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
+          <select id="tp-wt">${state.workTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
+          <input type="number" id="tp-duration" min="0" step="0.5" placeholder="標準時間" style="max-width:100px;">
+          <select id="tp-unit" style="max-width:90px;"><option value="時間">時間</option><option value="日">日</option></select>
+          <input type="number" id="tp-count" min="1" placeholder="標準人数" style="max-width:100px;">
+          <button class="ss-btn teal" id="tp-add" style="flex:0 0 auto;">登録</button>
+        </div>
+        <div id="tp-list" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="ss-card">
+        <div class="ss-card-title">既存データの一括取込 <small>Googleスプレッドシートからコピー＆貼り付け</small></div>
+        <details class="ss-details"><summary>列の並びと取込欄を開く</summary>
+          <div class="ss-import-box" style="margin-top:8px;">
+            <div class="ss-hint">列の並び：<b>施行日 / 営業担当 / 物件名 / 住所 / 施工内容 / 予算金額 / 実質金額</b>（タブ区切り＝範囲をそのままコピペでOK）。取り込んだ予定はメインカレンダーに「未分類」で登録されます。</div>
+            <textarea id="imp-text" placeholder="ここにスプレッドシートの範囲を貼り付け"></textarea>
+            <button class="ss-btn ghost" id="imp-run" style="margin-top:8px;">この内容を取り込む</button>
+          </div>
+        </details>
+      </div>
+
+      <div class="ss-card">
+        <div class="ss-card-title">人員一覧 <button class="ss-btn small amber" id="ss-add-worker">＋ 人員を追加</button></div>
+        <div id="ss-worker-list"></div>
+      </div>
+    `;
+
+    const $eq = document.getElementById('ss-eq');
+    $eq.innerHTML = state.equipmentTypes.map(t=>`<span class="ss-taskchip"><span class="ss-dot" style="background:${eqColorIdx(t.id)}"></span>${t.name}<button class="ss-x" data-del-eq="${t.id}">×</button></span>`).join('') || '<span class="ss-empty">未登録</span>';
+    $eq.querySelectorAll('[data-del-eq]').forEach(b=>b.onclick=async()=>{
+      const id=b.dataset.delEq;
+      state.equipmentTypes = state.equipmentTypes.filter(t=>t.id!==id);
+      state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.equipmentTypeId!==id); });
+      state.vendors.forEach(v=>{ v.equipmentTypeIds=(v.equipmentTypeIds||[]).filter(e=>e!==id); });
+      state.templates = state.templates.filter(t=>t.equipmentTypeId!==id);
+      await saveMaster(); render();
+    });
+    document.getElementById('add-eq').onclick = async()=>{
+      const v = document.getElementById('new-eq').value.trim(); if(!v) return;
+      state.equipmentTypes.push({id:uid('eq'),name:v}); await saveMaster(); render();
+    };
+
+    const $wt = document.getElementById('ss-wt');
+    $wt.innerHTML = state.workTypes.map(t=>`<span class="ss-taskchip">${t.name}<button class="ss-x" data-del-wt="${t.id}">×</button></span>`).join('') || '<span class="ss-empty">未登録</span>';
+    $wt.querySelectorAll('[data-del-wt]').forEach(b=>b.onclick=async()=>{
+      const id=b.dataset.delWt;
+      state.workTypes = state.workTypes.filter(t=>t.id!==id);
+      state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.workTypeId!==id); });
+      state.vendors.forEach(v=>{ v.workTypeIds=(v.workTypeIds||[]).filter(e=>e!==id); });
+      state.templates = state.templates.filter(t=>t.workTypeId!==id);
+      await saveMaster(); render();
+    });
+    document.getElementById('add-wt').onclick = async()=>{
+      const v = document.getElementById('new-wt').value.trim(); if(!v) return;
+      state.workTypes.push({id:uid('wt'),name:v}); await saveMaster(); render();
+    };
+
+    renderTemplateList();
+    document.getElementById('tp-add').onclick = async ()=>{
+      const equipmentTypeId = document.getElementById('tp-eq').value;
+      const workTypeId = document.getElementById('tp-wt').value;
+      const durationValue = Number(document.getElementById('tp-duration').value);
+      const durationUnit = document.getElementById('tp-unit').value;
+      const requiredCount = Number(document.getElementById('tp-count').value);
+      if(!equipmentTypeId || !workTypeId){ toast('機器種類・作業内容が未登録です'); return; }
+      if(!durationValue || !requiredCount){ toast('標準時間と標準人数を入力してください'); return; }
+      const existing = findTemplate(equipmentTypeId, workTypeId);
+      if(existing){ existing.durationValue=durationValue; existing.durationUnit=durationUnit; existing.requiredCount=requiredCount; }
+      else { state.templates.push({id:uid('tp'), equipmentTypeId, workTypeId, durationValue, durationUnit, requiredCount}); }
+      await saveMaster(); toast('テンプレートを登録しました'); renderTemplateList();
+    };
+    document.getElementById('imp-run').onclick = ()=>{
+      const text = document.getElementById('imp-text').value;
+      if(!text.trim()){ toast('貼り付ける内容がありません'); return; }
+      runImport(text);
+    };
+
+    renderWorkerList();
+    document.getElementById('ss-add-worker').onclick = async()=>{
+      const name = prompt('氏名を入力してください'); if(!name) return;
+      state.workers.push({id:uid('w'), name, type:'社員', skills:[], overtimeHours:0, maxOvertimeHours:45});
+      await saveMaster(); render();
+    };
+  }
+
+  function renderTemplateList(){
+    const $t = document.getElementById('tp-list');
+    if(!$t) return;
+    if(state.templates.length===0){ $t.innerHTML = `<div class="ss-empty">テンプレートが未登録です。よく発生する工事から登録していきましょう。</div>`; return; }
+    $t.innerHTML = `<div class="ss-table-wrap"><table class="ss-table">
+      <tr><th>工事内容</th><th>標準時間</th><th>標準人数</th><th></th></tr>
+      ${state.templates.map(t=>`
+        <tr><td>${templateLabel(t)}</td><td class="mono">${t.durationValue}${t.durationUnit}</td><td class="mono">${t.requiredCount}人</td>
+        <td><button class="ss-x" data-del-tp="${t.id}">×</button></td></tr>
+      `).join('')}
+    </table></div>`;
+    $t.querySelectorAll('[data-del-tp]').forEach(b=>b.onclick=async()=>{
+      state.templates = state.templates.filter(t=>t.id!==b.dataset.delTp);
+      await saveMaster(); renderTemplateList();
+    });
+  }
+
+  function renderWorkerList(){
+    const $l = document.getElementById('ss-worker-list');
+    if(state.workers.length===0){ $l.innerHTML = `<div class="ss-empty">人員が未登録です。「＋人員を追加」から登録してください。</div>`; return; }
+    $l.innerHTML = state.workers.map(w=>`
+      <div class="ss-worker-card">
+        <div class="top">
+          <span class="wname">${w.name}</span>
+          <select data-w="${w.id}" data-f="type" style="width:80px;">
+            <option value="社員" ${w.type==='社員'?'selected':''}>社員</option>
+            <option value="外注" ${w.type==='外注'?'selected':''}>外注</option>
+          </select>
+          <span style="font-size:11px;color:var(--muted);">今週残業</span>
+          <input type="number" class="mono" data-w="${w.id}" data-f="overtimeHours" value="${w.overtimeHours||0}" style="width:60px;${(w.overtimeHours||0)>(w.maxOvertimeHours||45)?'color:var(--danger);font-weight:700;':''}">
+          <span style="font-size:11px;color:var(--muted);">上限</span>
+          <input type="number" class="mono" data-w="${w.id}" data-f="maxOvertimeHours" value="${w.maxOvertimeHours||45}" style="width:60px;">
+          <button class="ss-x" data-del-w="${w.id}">×</button>
+        </div>
+        <div>
+          ${(w.skills||[]).length===0 ? '<span class="ss-empty" style="padding:0;">スキル未登録</span>' :
+            w.skills.map(s=>`<span class="ss-skillchip"><span class="lv">${s.level}</span>${eqName(s.equipmentTypeId)}／${wtName(s.workTypeId)}<button class="ss-x" data-del-skill="${w.id}|${s.id}" style="padding:0 2px;">×</button></span>`).join('')}
+        </div>
+        <button class="ss-btn ghost small" data-add-skill="${w.id}" style="margin-top:6px;">＋ スキルを追加</button>
+        ${skillFormOpenWorkerId===w.id ? `
+          <div class="ss-add-skill-form">
+            <select id="nf-eq-${w.id}">${state.equipmentTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
+            <select id="nf-wt-${w.id}">${state.workTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
+            <select id="nf-lv-${w.id}">${[1,2,3,4,5].map(n=>`<option value="${n}" ${n===3?'selected':''}>Lv${n}</option>`).join('')}</select>
+            <button class="ss-btn small teal" data-save-skill="${w.id}">保存</button>
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+
+    $l.querySelectorAll('[data-f]').forEach(inp=>inp.onchange=async()=>{
+      const w = worker(inp.dataset.w);
+      w[inp.dataset.f] = inp.dataset.f==='type' ? inp.value : (Number(inp.value)||0);
+      await saveMaster(); renderWorkerList();
+    });
+    $l.querySelectorAll('[data-del-w]').forEach(b=>b.onclick=async()=>{
+      if(!confirm('この人員を削除しますか？')) return;
+      state.workers = state.workers.filter(w=>w.id!==b.dataset.delW);
+      await saveMaster(); renderWorkerList();
+    });
+    $l.querySelectorAll('[data-del-skill]').forEach(b=>b.onclick=async()=>{
+      const [wid,sid] = b.dataset.delSkill.split('|');
+      const w = worker(wid); w.skills = (w.skills||[]).filter(s=>s.id!==sid);
+      await saveMaster(); renderWorkerList();
+    });
+    $l.querySelectorAll('[data-add-skill]').forEach(b=>b.onclick=()=>{
+      skillFormOpenWorkerId = (skillFormOpenWorkerId===b.dataset.addSkill)?null:b.dataset.addSkill;
+      renderWorkerList();
+    });
+    $l.querySelectorAll('[data-save-skill]').forEach(b=>b.onclick=async()=>{
+      const wid = b.dataset.saveSkill;
+      const w = worker(wid);
+      const equipmentTypeId = document.getElementById(`nf-eq-${wid}`).value;
+      const workTypeId = document.getElementById(`nf-wt-${wid}`).value;
+      const level = Number(document.getElementById(`nf-lv-${wid}`).value);
+      w.skills = w.skills||[];
+      const dup = w.skills.find(s=>s.equipmentTypeId===equipmentTypeId && s.workTypeId===workTypeId);
+      if(dup){ dup.level = level; } else { w.skills.push({id:uid('sk'), equipmentTypeId, workTypeId, level}); }
+      skillFormOpenWorkerId = null;
+      await saveMaster(); renderWorkerList();
+    });
+  }
+
+  // ---------- VENDORS ----------
+  function renderVendors(){
+    $main.innerHTML = `
+      <div class="ss-card">
+        <div class="ss-card-title">外注先マスタ <button class="ss-btn small amber" id="v-add">＋ 外注先を追加</button></div>
+        <div class="ss-hint">対応できる「機器種類」と「作業内容」をタップして設定してください。</div>
+        <div id="v-list"></div>
+      </div>
+      <div class="ss-card"><div class="ss-card-title">外注実績ログ（金額集計）</div><div id="v-log"></div></div>
+    `;
+    renderVendorList();
+    document.getElementById('v-add').onclick = async()=>{
+      const name = prompt('外注先の会社名・担当者名を入力してください'); if(!name) return;
+      state.vendors.push({id:uid('v'), name, equipmentTypeIds:[], workTypeIds:[], contact:'', note:''});
+      await saveMaster(); renderVendors();
+    };
+    const entries = [];
+    state.projects.forEach(p=>{ (p.vendorEntries||[]).forEach(v=> entries.push({...v, projectName:p.name, date:p.start})); });
+    entries.sort((a,b)=> a.date<b.date?1:-1);
+    const $log = document.getElementById('v-log');
+    $log.innerHTML = entries.length===0 ? `<div class="ss-empty">まだ外注実績がありません。</div>` :
+      `<div class="ss-table-wrap"><table class="ss-table"><tr><th>日付</th><th>業者名</th><th>案件</th><th>金額</th><th>備考</th></tr>
+      ${entries.map(e=>`<tr><td class="mono">${e.date}</td><td><b>${e.vendorName}</b></td><td>${e.projectName}</td><td class="mono">${yen(e.amount)}</td><td>${e.note||''}</td></tr>`).join('')}
+      </table></div>`;
+  }
+  function renderVendorList(){
+    const $l = document.getElementById('v-list');
+    if(state.vendors.length===0){ $l.innerHTML = `<div class="ss-empty">外注先が未登録です。</div>`; return; }
+    $l.innerHTML = state.vendors.map(v=>`
+      <div class="ss-worker-card">
+        <div class="top">
+          <span class="wname">${v.name}</span>
+          <input type="text" data-v="${v.id}" data-f="contact" value="${v.contact||''}" placeholder="連絡先" style="width:120px;">
+          <input type="text" data-v="${v.id}" data-f="note" value="${v.note||''}" placeholder="単価目安・備考" style="width:150px;">
+          <button class="ss-x" data-del-v="${v.id}">×</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">機器種類</div>
+        <div>${state.equipmentTypes.map(t=>`<span class="ss-chiptoggle ${((v.equipmentTypeIds||[]).includes(t.id))?'on':''}" data-vc-eq="${v.id}|${t.id}">${t.name}</span>`).join('')}</div>
+        <div style="font-size:11px;color:var(--muted);margin:6px 0 3px;">作業内容</div>
+        <div>${state.workTypes.map(t=>`<span class="ss-chiptoggle ${((v.workTypeIds||[]).includes(t.id))?'on':''}" data-vc-wt="${v.id}|${t.id}">${t.name}</span>`).join('')}</div>
+      </div>
+    `).join('');
+    $l.querySelectorAll('[data-f]').forEach(inp=>inp.onchange=async()=>{
+      const v = state.vendors.find(v=>v.id===inp.dataset.v); v[inp.dataset.f]=inp.value; await saveMaster();
+    });
+    $l.querySelectorAll('[data-del-v]').forEach(b=>b.onclick=async()=>{
+      if(!confirm('削除しますか？')) return;
+      state.vendors = state.vendors.filter(v=>v.id!==b.dataset.delV); await saveMaster(); renderVendors();
+    });
+    $l.querySelectorAll('[data-vc-eq]').forEach(chip=>chip.onclick=async()=>{
+      const [vid,eid] = chip.dataset.vcEq.split('|');
+      const v = state.vendors.find(v=>v.id===vid); v.equipmentTypeIds = v.equipmentTypeIds||[];
+      if(v.equipmentTypeIds.includes(eid)) v.equipmentTypeIds = v.equipmentTypeIds.filter(x=>x!==eid);
+      else v.equipmentTypeIds.push(eid);
+      await saveMaster(); renderVendorList();
+    });
+    $l.querySelectorAll('[data-vc-wt]').forEach(chip=>chip.onclick=async()=>{
+      const [vid,wid] = chip.dataset.vcWt.split('|');
+      const v = state.vendors.find(v=>v.id===vid); v.workTypeIds = v.workTypeIds||[];
+      if(v.workTypeIds.includes(wid)) v.workTypeIds = v.workTypeIds.filter(x=>x!==wid);
+      else v.workTypeIds.push(wid);
+      await saveMaster(); renderVendorList();
+    });
+  }
+
+  // ---------- CALENDAR (TimeTree風・手動編集可) ----------
+  function renderCalendar(){
+    $main.innerHTML = `
+      <div class="ss-card">
+        <div class="ss-cal-toolbar">
+          <div class="ss-cal-legend" id="cal-legend"></div>
+          <button class="ss-btn ghost small" id="cal-add-calendar">＋ カレンダーを追加</button>
+        </div>
+        <div class="ss-cal-toolbar">
+          <span id="cal-label" class="disp" style="font-size:20px;"></span>
+          <span>
+            <button class="ss-btn ghost small" id="cal-prev">◀ 前月</button>
+            <button class="ss-btn ghost small" id="cal-next">翌月 ▶</button>
+            <button class="ss-btn amber small" id="cal-add-event">＋ 予定を追加</button>
+          </span>
+        </div>
+        <div class="ss-cal-grid" id="cal-grid"></div>
+      </div>
+      ${eventModal ? renderEventModalHtml() : ''}
+    `;
+    const $legend = document.getElementById('cal-legend');
+    $legend.innerHTML = state.calendars.map(c=>`
+      <span class="ss-cal-legend-item ${calVisible[c.id]===false?'off':''}" data-toggle-cal="${c.id}">
+        <span class="ss-dot" style="background:${c.color}"></span>${c.name}
+      </span>
+    `).join('');
+    $legend.querySelectorAll('[data-toggle-cal]').forEach(el=>el.onclick=()=>{
+      const id = el.dataset.toggleCal;
+      calVisible[id] = !(calVisible[id]!==false);
+      renderCalendar();
+    });
+    document.getElementById('cal-add-calendar').onclick = async()=>{
+      const name = prompt('カレンダー名を入力してください（例：協力業者、車両 など）');
+      if(!name) return;
+      const color = CAL_COLORS[state.calendars.length % CAL_COLORS.length];
+      state.calendars.push({id:uid('cal'), name, color});
+      await saveMaster();
+      renderCalendar();
+    };
+    document.getElementById('cal-prev').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()-1); renderCalendar(); };
+    document.getElementById('cal-next').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()+1); renderCalendar(); };
+    document.getElementById('cal-add-event').onclick=()=>{ openEventModal('new', todayStr()); };
+    document.getElementById('cal-label').textContent = `${calMonth.getFullYear()}年 ${calMonth.getMonth()+1}月`;
+
+    const $g = document.getElementById('cal-grid');
+    const dows = ['日','月','火','水','木','金','土'];
+    let html = dows.map(d=>`<div class="ss-cal-dow">${d}</div>`).join('');
+    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
+    const startOffset = first.getDay();
+    const daysInMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 0).getDate();
+    const today = todayStr();
+    for(let i=0;i<startOffset;i++) html += `<div></div>`;
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = fmtDate(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
+      const items = state.projects.filter(p => p.start<=dateStr && dateStr<=p.end && calVisible[p.calendarId]!==false);
+      html += `<div class="ss-cal-cell ${dateStr===today?'today':''}" data-day="${dateStr}"><div class="d">${d}</div>
+        ${items.map(p=>`<div class="ss-cal-item" style="background:${calColor(p.calendarId)}" data-open-event="${p.id}" title="${p.name}">${p.startTime?(p.startTime+' '):''}${p.name}${p.url?' 🔗':''}</div>`).join('')}
+      </div>`;
+    }
+    $g.innerHTML = html;
+    $g.querySelectorAll('[data-open-event]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); openEventModal('edit', null, el.dataset.openEvent); });
+    $g.querySelectorAll('.ss-cal-cell').forEach(cell=>cell.onclick=()=>{ openEventModal('new', cell.dataset.day); });
+
+    if(eventModal) attachEventModalHandlers();
+  }
+
+  function openEventModal(mode, dateStr, projectId){
+    if(mode==='new'){
+      eventModal = { mode:'new', data:{
+        name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
+        requiredLevel:3, start:dateStr, end:dateStr, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
+        assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
+        calendarId: mainCalendarId(),
+      }};
+    } else {
+      const p = state.projects.find(p=>p.id===projectId);
+      eventModal = { mode:'edit', id:projectId, data: JSON.parse(JSON.stringify(p)) };
+    }
+    renderCalendar();
+  }
+  function closeEventModal(){ eventModal=null; renderCalendar(); }
+
+  function renderEventModalHtml(){
+    const d = eventModal.data;
+    return `
+    <div class="ss-modal-overlay" id="ev-overlay">
+      <div class="ss-modal">
+        <div class="ss-modal-head">
+          <h3>${eventModal.mode==='new' ? '予定を追加' : '予定の編集'}</h3>
+          <button class="ss-x" id="ev-close" style="font-size:20px;">×</button>
+        </div>
+
+        <div class="ss-modal-section">
+          <div class="ss-field"><label>タイトル</label><input type="text" id="ev-name" value="${d.name||''}" placeholder="例：スガキヤ港店 厨房入替"></div>
+          <div class="ss-field"><label>カレンダー</label>
+            <select id="ev-calendar">${state.calendars.map(c=>`<option value="${c.id}" ${d.calendarId===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
+          </div>
+        </div>
+
+        <div class="ss-modal-section">
+          <div class="ss-row">
+            <div class="ss-field"><label>開始日</label><input type="date" id="ev-start" value="${d.start}"></div>
+            <div class="ss-field"><label>終了日</label><input type="date" id="ev-end" value="${d.end}"></div>
+          </div>
+          <div class="ss-row">
+            <div class="ss-field"><label>開始時刻（24時間表記・任意）</label><input type="time" id="ev-start-time" value="${d.startTime||''}" step="300"></div>
+            <div class="ss-field"><label>終了時刻（24時間表記・任意）</label><input type="time" id="ev-end-time" value="${d.endTime||''}" step="300"></div>
+          </div>
+          <div class="ss-field"><label>場所</label><input type="text" id="ev-address" value="${d.address||''}" placeholder="住所・現場名など"></div>
+          <div class="ss-field"><label>URL（図面・Googleドライブなど）</label>
+            <div class="ss-row" style="align-items:center;">
+              <input type="text" id="ev-url" value="${d.url||''}" placeholder="https://drive.google.com/...">
+              ${d.url ? `<a class="ss-link-btn" href="${d.url}" target="_blank" rel="noopener" style="flex:0 0 auto;">🔗 開く</a>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="ss-modal-section">
+          <div class="ss-subhead" style="margin-top:0;">参加者（社員）</div>
+          <div id="ev-participants">${state.workers.map(w=>`<span class="ss-chiptoggle ${((d.assignedWorkerIds||[]).includes(w.id))?'on':''}" data-ev-p="${w.id}">${w.name}</span>`).join('') || '<span class="ss-empty">人員未登録</span>'}</div>
+          ${d.equipmentTypeId && d.workTypeId ? `<button class="ss-btn ghost small" id="ev-auto-assign" style="margin-top:8px;">スキルから自動提案</button>` : ''}
+        </div>
+
+        <div class="ss-modal-section">
+          <div class="ss-subhead" style="margin-top:0;">外注</div>
+          <div id="ev-vendor-list">${(d.vendorEntries||[]).map((v,i)=>`<span class="ss-vendor-tag">${v.vendorName} ${yen(v.amount)} <button class="ss-x" data-del-ve="${i}" style="padding:0;">×</button></span>`).join('') || ''}</div>
+          <div class="ss-row" style="margin-top:6px;">
+            <input type="text" id="ev-ve-name" placeholder="業者名" list="ev-vendor-datalist">
+            <input type="number" id="ev-ve-amount" placeholder="金額">
+            <button class="ss-btn ghost small" id="ev-ve-add" style="flex:0 0 auto;">追加</button>
+          </div>
+          <datalist id="ev-vendor-datalist">${state.vendors.map(v=>`<option value="${v.name}">`).join('')}</datalist>
+        </div>
+
+        <div class="ss-modal-section">
+          <div class="ss-field"><label>メモ</label><textarea id="ev-memo" placeholder="施工内容、撤去品、注意点など自由に">${d.workDetail||''}</textarea></div>
+        </div>
+
+        <details class="ss-details">
+          <summary>詳細設定（自動割当用：機器種類・作業内容・必要人数・金額）</summary>
+          <div class="ss-modal-section">
+            <div class="ss-row">
+              <div class="ss-field"><label>機器種類</label><select id="ev-eq"><option value="">未設定</option>${state.equipmentTypes.map(t=>`<option value="${t.id}" ${d.equipmentTypeId===t.id?'selected':''}>${t.name}</option>`).join('')}</select></div>
+              <div class="ss-field"><label>作業内容</label><select id="ev-wt"><option value="">未設定</option>${state.workTypes.map(t=>`<option value="${t.id}" ${d.workTypeId===t.id?'selected':''}>${t.name}</option>`).join('')}</select></div>
+              <div class="ss-field"><label>必要人数</label><input type="number" id="ev-count" min="1" value="${d.requiredCount||1}"></div>
+            </div>
+            <div class="ss-row">
+              <div class="ss-field"><label>営業担当</label><input type="text" id="ev-sales" value="${d.salesRep||''}"></div>
+              <div class="ss-field"><label>予算金額</label><input type="number" id="ev-budget" min="0" value="${d.budgetAmount||0}"></div>
+              <div class="ss-field"><label>実質金額</label><input type="number" id="ev-actual" min="0" value="${d.actualAmount||0}"></div>
+            </div>
+          </div>
+        </details>
+
+        <div class="ss-modal-actions">
+          <div>${eventModal.mode==='edit' ? `<button class="ss-btn danger small" id="ev-delete">削除</button>` : ''}</div>
+          <div style="display:flex;gap:8px;">
+            <button class="ss-btn ghost" id="ev-cancel">キャンセル</button>
+            <button class="ss-btn amber" id="ev-save">保存</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function attachEventModalHandlers(){
+    const d = eventModal.data;
+    document.getElementById('ev-overlay').addEventListener('click', (e)=>{ if(e.target.id==='ev-overlay') closeEventModal(); });
+    document.getElementById('ev-close').onclick = closeEventModal;
+    document.getElementById('ev-cancel').onclick = closeEventModal;
+    document.getElementById('ev-url').addEventListener('change', ()=>{
+      d.url = document.getElementById('ev-url').value.trim();
+      renderCalendar();
+    });
+    document.querySelectorAll('#ev-participants [data-ev-p]').forEach(chip=>chip.onclick=()=>{
+      const wid = chip.dataset.evP;
+      d.assignedWorkerIds = d.assignedWorkerIds||[];
+      if(d.assignedWorkerIds.includes(wid)) d.assignedWorkerIds = d.assignedWorkerIds.filter(x=>x!==wid);
+      else d.assignedWorkerIds.push(wid);
+      renderCalendar();
+    });
+    const autoBtn = document.getElementById('ev-auto-assign');
+    if(autoBtn) autoBtn.onclick = ()=>{
+      const start = document.getElementById('ev-start').value;
+      const end = document.getElementById('ev-end').value;
+      const result = suggest({equipmentTypeId:d.equipmentTypeId, workTypeId:d.workTypeId, requiredLevel:d.requiredLevel||3, start, end, requiredCount: Number(document.getElementById('ev-count').value)||1}, eventModal.id||null);
+      d.assignedWorkerIds = result.picked.map(c=>c.worker.id);
+      if(result.shortage>0) toast(`⚠ ${result.shortage}名不足しています。外注を検討してください`);
+      else toast('スキル・残業状況から人員を提案しました');
+      renderCalendar();
+    };
+    document.getElementById('ev-ve-add').onclick = ()=>{
+      const vname = document.getElementById('ev-ve-name').value.trim();
+      const vamount = Number(document.getElementById('ev-ve-amount').value)||0;
+      if(!vname) return;
+      d.vendorEntries = d.vendorEntries||[];
+      d.vendorEntries.push({vendorName:vname, amount:vamount, note:''});
+      renderCalendar();
+    };
+    document.querySelectorAll('[data-del-ve]').forEach(b=>b.onclick=()=>{
+      d.vendorEntries.splice(Number(b.dataset.delVe),1);
+      renderCalendar();
+    });
+    document.getElementById('ev-delete') && (document.getElementById('ev-delete').onclick = async()=>{
+      if(!confirm('この予定を削除しますか？')) return;
+      state.projects = state.projects.filter(p=>p.id!==eventModal.id);
+      await saveProjects();
+      closeEventModal();
+      toast('削除しました');
+    });
+    document.getElementById('ev-save').onclick = async()=>{
+      const name = document.getElementById('ev-name').value.trim() || '(名称未設定)';
+      const calendarId = document.getElementById('ev-calendar').value;
+      const start = document.getElementById('ev-start').value;
+      const end = document.getElementById('ev-end').value || start;
+      const startTime = document.getElementById('ev-start-time').value;
+      const endTime = document.getElementById('ev-end-time').value;
+      const url = document.getElementById('ev-url').value.trim();
+      const address = document.getElementById('ev-address').value.trim();
+      const workDetail = document.getElementById('ev-memo').value.trim();
+      const equipmentTypeId = document.getElementById('ev-eq').value || null;
+      const workTypeId = document.getElementById('ev-wt').value || null;
+      const requiredCount = Number(document.getElementById('ev-count').value)||1;
+      const salesRep = document.getElementById('ev-sales').value.trim();
+      const budgetAmount = Number(document.getElementById('ev-budget').value)||0;
+      const actualAmount = Number(document.getElementById('ev-actual').value)||0;
+      const payload = {
+        name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||3,
+        start, end, allDay: !(startTime||endTime), startTime, endTime, url, requiredCount, assignedWorkerIds: d.assignedWorkerIds||[], outsourceCount: 0,
+        vendorEntries: d.vendorEntries||[], budgetAmount, actualAmount, calendarId,
+      };
+      if(eventModal.mode==='new'){
+        state.projects.push(Object.assign({id:uid('p'), createdAt:new Date().toISOString()}, payload));
+      } else {
+        const p = state.projects.find(p=>p.id===eventModal.id);
+        Object.assign(p, payload);
+      }
+      await saveProjects();
+      closeEventModal();
+      toast('保存しました');
+    };
+  }
+
+  render_boot();
+  function render_boot(){ loadAll().then(render); }
+
+  // ---------- AI CHAT ----------
+  function renderChat(){
+    $main.innerHTML = `
+      <div class="ss-card">
+        <div class="ss-card-title">AIチャットで案件登録 <small>「来週のスガキヤ港店、製氷機の入替お願い」のように話しかけてください（メインカレンダーに登録されます）</small></div>
+        <div class="ss-chat-wrap">
+          <div class="ss-chat-log" id="chat-log"></div>
+          <div class="ss-chat-input-row">
+            <input type="text" id="chat-input" placeholder="例：7/15にスガキヤ港店、厨房入替お願い">
+            <button class="ss-btn amber" id="chat-send">送信</button>
+            <button class="ss-btn ghost" id="chat-reset">会話をリセット</button>
+          </div>
+          <div class="ss-hint">AIはこのツールに登録済みの機器種類・作業内容・工事テンプレート・人員・外注先を参照して回答します。登録が多いほど精度が上がります。</div>
+        </div>
+      </div>
+    `;
+    if(chatMessages.length===0){
+      chatMessages.push({role:'ai', text:'どの現場の、どんな作業ですか？店舗名（または現場名）と作業内容を教えてください。'});
+    }
+    renderChatLog();
+    document.getElementById('chat-send').onclick = sendChatMessage;
+    document.getElementById('chat-input').addEventListener('keydown', e=>{ if(e.key==='Enter') sendChatMessage(); });
+    document.getElementById('chat-reset').onclick = ()=>{
+      chatMessages = []; chatApiHistory = []; chatFields = {}; chatPendingProposal = null;
+      renderChat();
+    };
+  }
+  function renderChatLog(){
+    const $log = document.getElementById('chat-log');
+    if(!$log) return;
+    $log.innerHTML = chatMessages.map(m=>{
+      if(m.role==='proposal') return renderProposalCardHtml(m.data);
+      const cls = m.role==='user' ? 'user' : (m.role==='system' ? 'system' : 'ai');
+      return `<div class="ss-msg ${cls}">${m.text}</div>`;
+    }).join('') + (chatBusy ? `<div class="ss-typing">AIが考えています…</div>` : '');
+    $log.scrollTop = $log.scrollHeight;
+    if(chatPendingProposal){
+      const btn = document.getElementById('chat-confirm-proposal');
+      if(btn) btn.onclick = ()=>confirmChatProposal(chatPendingProposal);
+    }
+  }
+  function buildChatSystemPrompt(){
+    const eq = state.equipmentTypes.map(t=>({id:t.id,name:t.name}));
+    const wt = state.workTypes.map(t=>({id:t.id,name:t.name}));
+    const workerNames = state.workers.map(w=>w.name);
+    const templateCombos = state.templates.map(t=>`${eqName(t.equipmentTypeId)}／${wtName(t.workTypeId)}（${t.durationValue}${t.durationUnit}・${t.requiredCount}人）`);
+    return `あなたは厨房設備工事会社の案件登録アシスタントです。ユーザーとの会話から、新しい工事案件の情報を聞き出してください。
+今日の日付は ${todayStr()} です。相対的な日付表現（来週・明日など）はこれを基準に計算してください。
+
+登録済みマスタ（該当するIDを使ってください。無理に一致させず、該当がなければnullにしてください）:
+機器種類: ${JSON.stringify(eq)}
+作業内容: ${JSON.stringify(wt)}
+登録済み人員: ${JSON.stringify(workerNames)}
+登録済み工事テンプレート: ${JSON.stringify(templateCombos)}
+
+【重要】以下の場合は status を "ready" にする前に、必ず追加で1つずつ質問してください：
+- 登録済み人員が0人、またはユーザーが言及した担当者の名前が登録済み人員に見つからない場合 → 「今回担当される方のお名前を教えてください（複数可）」のように質問し、fields.newWorkerNames に名前の配列を入れてください。
+- 選択された機器種類×作業内容の組み合わせのテンプレートが登録済みテンプレートに存在しない場合 → 「標準的な作業時間と人数を教えてください（今後のテンプレートとして登録します）」のように質問し、fields.newTemplateDuration（数値）、fields.newTemplateUnit（"時間"か"日"）、fields.newTemplateCount（人数）を埋めてください。
+これらの確認が済んでいない状態では status を "ask" のままにしてください。ユーザーが「わからない」「後で」など回答をスキップする意思を示した場合は、その項目は諦めて ready に進めてください。
+
+必ず次のJSON形式のみで回答してください（説明文やコードフェンスは一切不要、JSONのみ）:
+{
+  "status": "ask" または "ready",
+  "reply": "ユーザーに見せる短い日本語の返信。ask の場合は次に確認すべき質問を1つだけ、ready の場合は簡潔な確認メッセージ",
+  "fields": {
+    "name": "現場名・物件名 または null",
+    "address": "住所や地域 または null",
+    "equipmentTypeId": "機器種類のID または null",
+    "workTypeId": "作業内容のID または null",
+    "requiredCount": "ユーザーが人数を明言した場合のみ数値、それ以外はnull",
+    "date": "YYYY-MM-DD または null",
+    "refrigerant": true/false（冷媒工事の言及があるか）,
+    "removal": true/false（搬出・撤去の言及があるか）,
+    "note": "階段あり、夜間のみ、等の特記事項。なければnull",
+    "newWorkerNames": ["担当者名", ...] または null,
+    "newTemplateDuration": 数値 または null,
+    "newTemplateUnit": "時間"または"日" または null,
+    "newTemplateCount": 数値 または null
+  }
+}
+一度に聞く質問は1つだけにしてください。これまでの会話で判明している項目は fields に必ず引き継いでください。`;
+  }
+  async function sendChatMessage(){
+    const $input = document.getElementById('chat-input');
+    const text = $input.value.trim();
+    if(!text || chatBusy) return;
+    $input.value = '';
+    chatMessages.push({role:'user', text});
+    chatApiHistory.push({role:'user', content:text});
+    chatBusy = true;
+    renderChatLog();
+    try{
+      const response = await fetch('/.netlify/functions/chat', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ system: buildChatSystemPrompt(), messages: chatApiHistory })
+      });
+      if(!response.ok) throw new Error('chat function error');
+      const data = await response.json();
+      const raw = (data.content||[]).map(c=>c.text||'').join('');
+      chatApiHistory.push({role:'assistant', content:raw});
+      let parsed;
+      try{ parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+      catch(e){ parsed = {status:'ask', reply: raw || 'すみません、うまく聞き取れませんでした。もう一度お願いします。', fields:{}}; }
+      chatFields = Object.assign({}, chatFields, parsed.fields||{});
+      chatBusy = false;
+      chatMessages.push({role:'ai', text: parsed.reply || '...'});
+      if(parsed.status === 'ready'){
+        if(chatFields.newTemplateDuration && chatFields.newTemplateUnit && chatFields.newTemplateCount && chatFields.equipmentTypeId && chatFields.workTypeId){
+          const existing = findTemplate(chatFields.equipmentTypeId, chatFields.workTypeId);
+          if(!existing){
+            state.templates.push({id:uid('tp'), equipmentTypeId:chatFields.equipmentTypeId, workTypeId:chatFields.workTypeId, durationValue:chatFields.newTemplateDuration, durationUnit:chatFields.newTemplateUnit, requiredCount:chatFields.newTemplateCount});
+            await saveMaster();
+            chatMessages.push({role:'system', text:`🗂 新しいテンプレートを登録しました：${eqName(chatFields.equipmentTypeId)}／${wtName(chatFields.workTypeId)}（${chatFields.newTemplateDuration}${chatFields.newTemplateUnit}・${chatFields.newTemplateCount}人）`});
+          }
+        }
+        let namedWorkers = [];
+        if(chatFields.newWorkerNames && chatFields.newWorkerNames.length){
+          const beforeNames = state.workers.map(w=>w.name);
+          namedWorkers = await resolveNamedWorkers(chatFields.newWorkerNames, chatFields.equipmentTypeId, chatFields.workTypeId);
+          const addedNames = namedWorkers.filter(w=>!beforeNames.includes(w.name)).map(w=>w.name);
+          if(addedNames.length) chatMessages.push({role:'system', text:`👷 新しい人員を登録しました：${addedNames.join('、')}`});
+        }
+        const proposal = computeChatProposal(chatFields, namedWorkers);
+        chatPendingProposal = proposal;
+        chatMessages.push({role:'proposal', data: proposal});
+      }
+      renderChatLog();
+    }catch(err){
+      chatBusy = false;
+      chatMessages.push({role:'system', text:'⚠ AIとの通信でエラーが発生しました。もう一度お試しください。'});
+      renderChatLog();
+    }
+  }
+  function computeChatProposal(fields, namedWorkers){
+    namedWorkers = namedWorkers || [];
+    const tmpl = findTemplate(fields.equipmentTypeId, fields.workTypeId);
+    const requiredCount = fields.requiredCount || (tmpl ? tmpl.requiredCount : Math.max(2, namedWorkers.length));
+    const start = fields.date || todayStr();
+    let end = start;
+    if(tmpl && tmpl.durationUnit==='日'){ end = addDays(start, Math.max(0, Math.ceil(tmpl.durationValue)-1)); }
+
+    let picked = namedWorkers.map(w=>({worker:w, skill: skillFor(w, fields.equipmentTypeId, fields.workTypeId)}));
+    let shortage = 0;
+    if(picked.length < requiredCount){
+      const result = suggest({equipmentTypeId:fields.equipmentTypeId, workTypeId:fields.workTypeId, requiredLevel:3, start, end, requiredCount: requiredCount - picked.length}, null, picked.map(c=>c.worker.id));
+      picked = picked.concat(result.picked);
+      shortage = result.shortage;
+    }
+    const vendorCands = vendorsForCombo(fields.equipmentTypeId, fields.workTypeId);
+    const warnings = [];
+    if(fields.refrigerant) warnings.push('冷媒工事の言及あり：冷媒資格者を含めて配置してください。');
+    if(fields.removal) warnings.push('搬出・撤去あり：車両・台車の手配を忘れずに。');
+    if(fields.note) warnings.push(fields.note);
+    if(shortage>0) warnings.push(`内部人員だけでは${shortage}名不足しています。外注の手配を検討してください。`);
+    return {
+      name: fields.name || '(名称未設定)', address: fields.address||'', equipmentTypeId: fields.equipmentTypeId,
+      workTypeId: fields.workTypeId, start, end, requiredCount,
+      picked: picked.map(c=>({id:c.worker.id, name:c.worker.name, skill:c.skill, overtimeHours:c.worker.overtimeHours||0})),
+      shortage, vendorCands: vendorCands.map(v=>v.name), warnings,
+      estimatedHours: tmpl ? `${tmpl.durationValue}${tmpl.durationUnit}` : '(テンプレート未登録)',
+      calendarId: mainCalendarId(),
+    };
+  }
+  function renderProposalCardHtml(p){
+    return `<div class="ss-proposal-card">
+      <div class="ptitle">📋 提案：${p.name}</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;" class="mono">${p.start}${p.start!==p.end?(' 〜 '+p.end):''} ／ ${eqName(p.equipmentTypeId)}／${wtName(p.workTypeId)} ／ 想定時間:${p.estimatedHours}</div>
+      <div class="ss-subhead" style="margin:6px 0 4px;">推奨人員（内部）</div>
+      ${p.picked.length===0 ? '<div class="ss-empty" style="padding:2px;">候補なし</div>' :
+        p.picked.map(w=>`<span class="ss-skillchip"><span class="lv">${w.skill}</span>${w.name}<span style="color:var(--muted);font-size:10px;margin-left:3px;">(残業${w.overtimeHours}h)</span></span>`).join('')}
+      ${p.shortage>0 ? `<div class="ss-shortage" style="margin-top:8px;">⚠ ${p.shortage}名不足。${p.vendorCands.length?('外注候補：'+p.vendorCands.join('、')):'対応可能な外注先が未登録です。'}</div>` : ''}
+      ${p.warnings.length ? `<div style="margin-top:8px;">${p.warnings.map(w=>`<div style="font-size:12px;color:var(--amber-deep);">⚠ ${w}</div>`).join('')}</div>` : ''}
+      <button class="ss-btn amber small" id="chat-confirm-proposal" style="margin-top:10px;">この内容でカレンダー登録する</button>
+    </div>`;
+  }
+  async function confirmChatProposal(p){
+    state.projects.push({
+      id: uid('p'), name: p.name, address: p.address, salesRep: '', workDetail: p.warnings.join('／'),
+      equipmentTypeId: p.equipmentTypeId, workTypeId: p.workTypeId, requiredLevel: 3, start: p.start, end: p.end,
+      allDay:true, requiredCount: p.requiredCount, assignedWorkerIds: p.picked.map(w=>w.id), outsourceCount: p.shortage,
+      vendorEntries: [], budgetAmount: 0, actualAmount: 0, calendarId: p.calendarId, createdAt: new Date().toISOString(),
+    });
+    await saveProjects();
+    chatMessages.push({role:'system', text:'✅ カレンダーに登録しました。'});
+    chatPendingProposal = null;
+    toast('案件をカレンダーに登録しました');
+    tab = 'calendar';
+    render();
+  }
+})();
+</script>
