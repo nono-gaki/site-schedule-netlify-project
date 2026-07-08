@@ -110,6 +110,7 @@
   .ss-msg.system{align-self:center;background:transparent;color:var(--muted);font-size:11.5px;}
   .ss-chat-input-row{display:flex;gap:8px;margin-top:10px;}
   .ss-chat-input-row input{flex:1;}
+  .ss-chat-input-row textarea{flex:1;resize:none;min-height:38px;max-height:140px;line-height:1.4;}
   .ss-proposal-card{background:#fff;border:1px solid var(--amber);border-radius:10px;padding:12px 14px;align-self:flex-start;max-width:92%;}
   .ss-proposal-card .ptitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--navy);margin-bottom:6px;}
   .ss-typing{align-self:flex-start;color:var(--muted);font-size:12px;padding:4px 8px;}
@@ -910,7 +911,7 @@
         <div class="ss-chat-wrap">
           <div class="ss-chat-log" id="chat-log"></div>
           <div class="ss-chat-input-row">
-            <input type="text" id="chat-input" placeholder="例：7/15にスガキヤ港店、厨房入替お願い">
+            <textarea id="chat-input" rows="1" placeholder="例：7/15にスガキヤ港店、厨房入替お願い（Shift+Enterで改行）"></textarea>
             <button class="ss-btn amber" id="chat-send">送信</button>
             <button class="ss-btn ghost" id="chat-reset">会話をリセット</button>
           </div>
@@ -923,7 +924,7 @@
     }
     renderChatLog();
     document.getElementById('chat-send').onclick = sendChatMessage;
-    document.getElementById('chat-input').addEventListener('keydown', e=>{ if(e.key==='Enter') sendChatMessage(); });
+    document.getElementById('chat-input').addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChatMessage(); } });
     document.getElementById('chat-reset').onclick = ()=>{
       chatMessages = []; chatApiHistory = []; chatFields = {}; chatPendingProposal = null;
       renderChat();
