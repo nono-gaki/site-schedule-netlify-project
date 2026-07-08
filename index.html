@@ -195,6 +195,7 @@
 (function(){
   const COLORS = ['#3E6E9E','#B87A1E','#5E8E5A','#8A5AA0','#C05C5C','#3A9E92','#9E7A3A'];
   const CAL_COLORS = ['#3E6E9E','#B87A1E','#5E8E5A','#8A5AA0','#C05C5C','#2E7D74','#9E7A3A','#4A5568'];
+  const EVENT_COLORS = ['#3E6E9E','#4FA3C7','#2E7D74','#5E8E5A','#9E7A3A','#B87A1E','#C05C5C','#C77DB0','#8A5AA0','#4A5568'];
   let state = { equipmentTypes: [], workTypes: [], workers: [], vendors: [], projects: [], templates: [], calendars: [] };
   let tab = 'dashboard';
   let calMonth = new Date(); calMonth.setDate(1);
@@ -223,6 +224,7 @@
   function calendar(id){ return state.calendars.find(c=>c.id===id); }
   function calColor(id){ const c=calendar(id); return c?c.color:'#9AA5AB'; }
   function calName(id){ const c=calendar(id); return c?c.name:'未分類'; }
+  function eventColor(p){ return p.color || calColor(p.calendarId); }
   function yen(n){ return '¥' + (Number(n)||0).toLocaleString(); }
   function comboLabel(p){
     if(!p.equipmentTypeId) return '';
@@ -418,7 +420,7 @@
         ${todays.length===0 ? `<div class="ss-empty">本日の予定はありません。</div>` :
           todays.map(p=>`
             <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);">
-              <span class="ss-dot" style="background:${calColor(p.calendarId)}"></span>
+              <span class="ss-dot" style="background:${eventColor(p)}"></span>
               <div style="flex:1;">
                 <b>${p.startTime?(p.startTime+' '):''}${p.name}</b> <span class="mono" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</span><br>
                 <span style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}${(p.vendorEntries||[]).length?` + 外注:${p.vendorEntries.map(v=>v.vendorName).join('、')}`:''}</span>
@@ -734,8 +736,8 @@
       const dateStr = fmtDate(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
       const items = state.projects.filter(p => p.start<=dateStr && dateStr<=p.end && calVisible[p.calendarId]!==false);
       html += `<div class="ss-cal-cell ${dateStr===today?'today':''}" data-day="${dateStr}"><div class="d">${d}</div>
-        ${items.map(p=>`<div class="ss-cal-item" style="background:${calColor(p.calendarId)}" title="${p.name}">${p.startTime?(p.startTime+' '):''}${p.name}${p.url?' 🔗':''}</div>`).join('')}
-        <div class="ss-cal-dots">${items.map(p=>`<span class="ss-dot" style="background:${calColor(p.calendarId)}"></span>`).join('')}</div>
+        ${items.map(p=>`<div class="ss-cal-item" style="background:${eventColor(p)}" title="${p.name}">${p.startTime?(p.startTime+' '):''}${p.name}${p.url?' 🔗':''}</div>`).join('')}
+        <div class="ss-cal-dots">${items.map(p=>`<span class="ss-dot" style="background:${eventColor(p)}"></span>`).join('')}</div>
       </div>`;
     }
     $g.innerHTML = html;
@@ -767,7 +769,7 @@
         ${items.length===0 ? `<div class="ss-empty">この日の予定はありません。</div>` :
           items.map(p=>`
             <div class="ss-daylist-item" data-open-event="${p.id}">
-              <span class="ss-dot" style="background:${calColor(p.calendarId)}"></span>
+              <span class="ss-dot" style="background:${eventColor(p)}"></span>
               <div style="flex:1;">
                 <b>${p.startTime?(p.startTime+' '):''}${p.name}</b>
                 <div class="mono" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</div>
@@ -792,7 +794,7 @@
         name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
         requiredLevel:3, start:dateStr, end:dateStr, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
         assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
-        calendarId: mainCalendarId(), images:[],
+        calendarId: mainCalendarId(), images:[], color:null,
       }, originalImageKeys:[] };
     } else {
       const p = state.projects.find(p=>p.id===projectId);
@@ -829,6 +831,13 @@
           <div class="ss-field"><label>タイトル</label><input type="text" id="ev-name" value="${d.name||''}" placeholder="例：スガキヤ港店 厨房入替"></div>
           <div class="ss-field"><label>カレンダー</label>
             <select id="ev-calendar">${state.calendars.map(c=>`<option value="${c.id}" ${d.calendarId===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
+          </div>
+          <div class="ss-field">
+            <label>色</label>
+            <div id="ev-color-swatches" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
+              <button type="button" class="ss-chiptoggle ${!d.color?'on':''}" data-color-auto="1" style="margin-right:4px;">カレンダーの色</button>
+              ${EVENT_COLORS.map(c=>`<span class="ss-color-swatch ${d.color===c?'on':''}" data-color="${c}" style="background:${c};" title="${c}"></span>`).join('')}
+            </div>
           </div>
         </div>
 
@@ -972,6 +981,8 @@
       d.url = document.getElementById('ev-url').value.trim();
       renderCalendar();
     });
+    document.getElementById('ev-color-swatches').querySelector('[data-color-auto]').onclick = ()=>{ d.color = null; renderCalendar(); };
+    document.querySelectorAll('#ev-color-swatches [data-color]').forEach(sw=>sw.onclick=()=>{ d.color = sw.dataset.color; renderCalendar(); });
     document.querySelectorAll('#ev-participants [data-ev-p]').forEach(chip=>chip.onclick=()=>{
       const wid = chip.dataset.evP;
       d.assignedWorkerIds = d.assignedWorkerIds||[];
@@ -1039,7 +1050,7 @@
         const payload = {
           name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||3,
           start, end, allDay: !(startTime||endTime), startTime, endTime, url, requiredCount, assignedWorkerIds: d.assignedWorkerIds||[], outsourceCount: 0,
-          vendorEntries: d.vendorEntries||[], budgetAmount, actualAmount, calendarId, images,
+          vendorEntries: d.vendorEntries||[], budgetAmount, actualAmount, calendarId, images, color: d.color||null,
         };
         if(eventModal.mode==='new'){
           state.projects.push(Object.assign({id:uid('p'), createdAt:new Date().toISOString()}, payload));
