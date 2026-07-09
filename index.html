@@ -144,6 +144,28 @@
   .ss-image-thumb .ss-x{position:absolute;top:2px;right:2px;background:rgba(20,30,40,.6);color:#fff;border-radius:50%;width:20px;height:20px;padding:0;line-height:20px;font-size:13px;}
   .ss-image-thumb .ss-x:hover{color:#fff;background:var(--danger);}
   .ss-image-loading{display:flex;align-items:center;justify-content:center;height:100%;font-size:10px;color:var(--muted);text-align:center;}
+  .ss-daylist-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;}
+  .ss-daylist-nav button{background:none;border:none;color:var(--navy);font-size:22px;cursor:pointer;padding:4px 10px;line-height:1;}
+  .ss-daylist-nav button:hover{color:var(--amber-deep);}
+  .ss-daylist-swipearea{touch-action:pan-y;}
+  .ss-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px;}
+  .ss-detail-back{background:none;border:none;color:var(--navy);font-size:22px;cursor:pointer;padding:2px 6px;flex-shrink:0;}
+  .ss-detail-menu-btn{background:none;border:none;color:var(--navy);font-size:22px;cursor:pointer;padding:2px 10px;flex-shrink:0;position:relative;}
+  .ss-detail-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;line-height:1.35;margin-bottom:14px;}
+  .ss-detail-datebox{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+  .ss-detail-datebox .dt{font-family:'JetBrains Mono',monospace;}
+  .ss-detail-datebox .dt b{font-size:26px;display:block;}
+  .ss-detail-datebox .dt span{font-size:13px;color:var(--muted);}
+  .ss-detail-arrow{color:var(--muted);font-size:20px;}
+  .ss-detail-row{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px dashed var(--line);}
+  .ss-detail-row:last-child{border-bottom:none;}
+  .ss-detail-row .ic{font-size:17px;flex-shrink:0;width:22px;text-align:center;}
+  .ss-detail-row .body{flex:1;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;}
+  .ss-detail-menu{position:absolute;top:32px;right:0;background:#fff;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);min-width:170px;z-index:20;overflow:hidden;text-align:left;}
+  .ss-detail-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:12px 16px;font-size:14px;color:var(--ink);cursor:pointer;font-family:'Inter',sans-serif;}
+  .ss-detail-menu button:hover{background:var(--paper);}
+  .ss-detail-menu button.danger{color:var(--danger);}
+  .ss-detail-menu hr{border:none;border-top:1px solid var(--line);margin:0;}
   @media(max-width:640px){
     #ss-root{font-size:15px;}
     label{font-size:12px;}
@@ -162,12 +184,15 @@
     table.ss-table th,table.ss-table td{padding:8px 8px;}
     .ss-taskchip,.ss-skillchip,.ss-chiptoggle{font-size:12.5px;padding:5px 12px;}
     button.ss-btn.small{padding:7px 13px;font-size:12.5px;}
-    .ss-daylist-item{padding:12px 4px;}
-    .ss-cal-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;}
-    .ss-cal-dow{font-size:10px;padding-bottom:2px;}
-    .ss-cal-cell{min-height:64px;padding:3px 2px;font-size:11px;border-radius:4px;}
-    .ss-cal-cell .d{font-size:11px;margin-bottom:2px;}
-    .ss-cal-item{font-size:9.5px;padding:2px 3px;margin-bottom:2px;border-radius:3px;line-height:1.4;}
+    .ss-daylist-item{padding:14px 2px;gap:12px;}
+    .ss-daylist-item .meta,.ss-daylist-item .mono{font-size:12.5px;}
+    .ss-cal-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;}
+    .ss-cal-dow{font-size:10.5px;padding-bottom:4px;}
+    .ss-cal-cell{min-height:72px;padding:4px 2px;font-size:12px;border:none;border-radius:0;background:transparent;}
+    .ss-cal-cell:hover{border:none;}
+    .ss-cal-cell.today{border:none;background:#FCF3E0;border-radius:6px;}
+    .ss-cal-cell .d{font-size:12px;margin-bottom:2px;}
+    .ss-cal-item{font-size:10.5px;padding:2.5px 4px;margin-bottom:2px;border-radius:4px;line-height:1.4;}
     .ss-cal-toolbar{gap:6px;}
     .ss-modal-overlay{padding:0;align-items:flex-end;}
     .ss-modal{max-width:100%;width:100%;border-radius:14px 14px 0 0;max-height:92vh;overflow-y:auto;padding:16px 14px 20px;}
@@ -204,6 +229,10 @@
   let calVisible = {}; // calendarId -> bool
   let eventModal = null; // {mode:'new'|'edit', data:{...}, id?, originalImageKeys?}
   let dayListModal = null; // dateStr
+  let detailModal = null; // projectId
+  let detailMenuOpen = false;
+  let copyModal = null; // {projectId, date, calendarId}
+  const imageCache = {}; // key -> dataUrl
   let skillFormOpenWorkerId = null;
   let outsourceFormOpenId = null; // reused inside modal context via eventModal
   let chatMessages = [];
@@ -700,7 +729,7 @@
         </div>
         <div class="ss-cal-grid" id="cal-grid"></div>
       </div>
-      ${eventModal ? renderEventModalHtml() : (dayListModal ? renderDayListModalHtml() : '')}
+      ${eventModal ? renderEventModalHtml() : copyModal ? renderCopyModalHtml() : detailModal ? renderDetailModalHtml() : (dayListModal ? renderDayListModalHtml() : '')}
     `;
     const $legend = document.getElementById('cal-legend');
     $legend.innerHTML = state.calendars.map(c=>`
@@ -742,10 +771,12 @@
       </div>`;
     }
     $g.innerHTML = html;
-    $g.querySelectorAll('.ss-cal-item[data-open-event]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); openEventModal('edit', null, el.dataset.openEvent); });
+    $g.querySelectorAll('.ss-cal-item[data-open-event]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); openDetail(el.dataset.openEvent); });
     $g.querySelectorAll('.ss-cal-cell').forEach(cell=>cell.onclick=()=>{ openDayList(cell.dataset.day); });
 
     if(eventModal) attachEventModalHandlers();
+    else if(copyModal) attachCopyHandlers();
+    else if(detailModal) attachDetailHandlers();
     else if(dayListModal) attachDayListHandlers();
   }
 
@@ -754,8 +785,9 @@
     const d = new Date(dateStr+'T00:00:00');
     return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${dows[d.getDay()]}）`;
   }
-  function openDayList(dateStr){ dayListModal = dateStr; eventModal = null; renderCalendar(); }
+  function openDayList(dateStr){ dayListModal = dateStr; eventModal = null; detailModal = null; renderCalendar(); }
   function closeDayList(){ dayListModal = null; renderCalendar(); }
+  function shiftDayList(n){ dayListModal = addDays(dayListModal, n); renderCalendar(); }
   function renderDayListModalHtml(){
     const dateStr = dayListModal;
     const items = state.projects.filter(p => p.start<=dateStr && dateStr<=p.end && calVisible[p.calendarId]!==false)
@@ -764,33 +796,201 @@
     <div class="ss-modal-overlay" id="daylist-overlay">
       <div class="ss-modal">
         <div class="ss-modal-head">
-          <h3>${dayLabel(dateStr)}</h3>
           <button class="ss-x" id="daylist-close" style="font-size:20px;">×</button>
         </div>
-        <button class="ss-btn amber small" id="daylist-add" style="margin-bottom:10px;">＋ この日に予定を追加</button>
+        <div class="ss-daylist-nav">
+          <button type="button" id="daylist-prev">‹</button>
+          <h3 style="margin:0;">${dayLabel(dateStr)}</h3>
+          <button type="button" id="daylist-next">›</button>
+        </div>
+        <button class="ss-btn amber small" id="daylist-add" style="margin:10px 0;">＋ この日に予定を追加</button>
+        <div id="daylist-swipearea" class="ss-daylist-swipearea">
         ${items.length===0 ? `<div class="ss-empty">この日の予定はありません。</div>` :
           items.map(p=>`
             <div class="ss-daylist-item" data-open-event="${p.id}">
               <span class="ss-dot" style="background:${eventColor(p)}"></span>
               <div style="flex:1;">
                 <b>${p.startTime?(p.startTime+' '):''}${p.name}</b>
-                <div class="mono" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</div>
-                <div style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}</div>
+                <div class="mono meta" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</div>
+                <div class="meta" style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}</div>
               </div>
             </div>
           `).join('')}
+        </div>
       </div>
     </div>`;
   }
   function attachDayListHandlers(){
     document.getElementById('daylist-overlay').addEventListener('click', e=>{ if(e.target.id==='daylist-overlay') closeDayList(); });
     document.getElementById('daylist-close').onclick = closeDayList;
+    document.getElementById('daylist-prev').onclick = ()=>shiftDayList(-1);
+    document.getElementById('daylist-next').onclick = ()=>shiftDayList(1);
     document.getElementById('daylist-add').onclick = ()=>{ openEventModal('new', dayListModal); };
-    document.querySelectorAll('[data-open-event]').forEach(el=>el.onclick=()=>{ openEventModal('edit', null, el.dataset.openEvent); });
+    document.querySelectorAll('[data-open-event]').forEach(el=>el.onclick=()=>{ openDetail(el.dataset.openEvent); });
+    const swipeArea = document.getElementById('daylist-swipearea');
+    let touchStartX = null, touchStartY = null;
+    swipeArea.addEventListener('touchstart', e=>{ touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }, {passive:true});
+    swipeArea.addEventListener('touchend', e=>{
+      if(touchStartX===null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5){ shiftDayList(dx < 0 ? 1 : -1); }
+      touchStartX = null; touchStartY = null;
+    }, {passive:true});
+  }
+
+  function openDetail(projectId){
+    detailModal = projectId;
+    detailMenuOpen = false;
+    eventModal = null;
+    copyModal = null;
+    renderCalendar();
+    fetchDetailImages();
+  }
+  function closeDetail(){ detailModal = null; detailMenuOpen = false; renderCalendar(); }
+  function renderDetailModalHtml(){
+    const p = state.projects.find(p=>p.id===detailModal);
+    if(!p) return '';
+    const color = eventColor(p);
+    const participantNames = (p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean);
+    const vendorNames = (p.vendorEntries||[]).map(v=>`${v.vendorName}（外注）`);
+    const allParticipants = [...participantNames, ...vendorNames];
+    const showEndDate = p.start!==p.end || (p.startTime && p.endTime);
+    return `
+    <div class="ss-modal-overlay" id="detail-overlay">
+      <div class="ss-modal">
+        <div class="ss-detail-head">
+          <button class="ss-detail-back" id="detail-close">×</button>
+          <div style="position:relative;">
+            <button type="button" class="ss-detail-menu-btn" id="detail-menu-btn">⋯</button>
+            ${detailMenuOpen ? `
+            <div class="ss-detail-menu" id="detail-menu">
+              <button type="button" id="detail-edit">編集</button>
+              <hr>
+              <button type="button" id="detail-copy">コピー</button>
+              <hr>
+              <button type="button" class="danger" id="detail-delete">削除</button>
+            </div>` : ''}
+          </div>
+        </div>
+        <div class="ss-detail-title" style="color:${color};">${p.name}</div>
+        <div class="ss-detail-datebox">
+          <div class="dt"><b>${dayLabel(p.start)}</b><span>${p.startTime || (p.allDay?'終日':'')}</span></div>
+          ${showEndDate ? `<span class="ss-detail-arrow">›</span><div class="dt"><b>${dayLabel(p.end)}</b><span>${p.endTime||''}</span></div>` : ''}
+        </div>
+        <div class="ss-detail-row"><span class="ic">👥</span><div class="body">${allParticipants.length ? allParticipants.join('、') : '未割当'}</div></div>
+        ${p.workDetail ? `<div class="ss-detail-row"><span class="ic">📝</span><div class="body">${p.workDetail}</div></div>` : ''}
+        ${p.address ? `<div class="ss-detail-row"><span class="ic">📍</span><div class="body">${p.address}</div></div>` : ''}
+        <div class="ss-detail-row"><span class="ic">📅</span><div class="body">${calName(p.calendarId)}${comboLabel(p)?(' ／ '+comboLabel(p)):''}</div></div>
+        ${p.url ? `<div class="ss-detail-row"><span class="ic">🔗</span><div class="body"><a href="${p.url}" target="_blank" rel="noopener">${p.url}</a></div></div>` : ''}
+        ${(p.images&&p.images.length) ? `<div class="ss-detail-row"><span class="ic">📷</span><div class="body"><div class="ss-image-grid" id="detail-images"></div></div></div>` : ''}
+      </div>
+    </div>`;
+  }
+  function renderDetailImages(){
+    const $imgs = document.getElementById('detail-images');
+    if(!$imgs || !detailModal) return;
+    const p = state.projects.find(p=>p.id===detailModal);
+    if(!p) return;
+    $imgs.innerHTML = (p.images||[]).map(im=>`
+      <div class="ss-image-thumb">
+        ${imageCache[im.key] ? `<img src="${imageCache[im.key]}" data-view-img="1">` : `<div class="ss-image-loading">読込中…</div>`}
+      </div>
+    `).join('');
+    $imgs.querySelectorAll('[data-view-img]').forEach(img=>img.onclick=()=>window.open(img.src, '_blank'));
+  }
+  async function fetchDetailImages(){
+    const p = state.projects.find(p=>p.id===detailModal);
+    if(!p) return;
+    for(const im of (p.images||[])){
+      if(imageCache[im.key] || !im.key) continue;
+      try{ await fetchImageDataUrl(im.key); if(detailModal===p.id) renderDetailImages(); }catch(e){ /* ignore */ }
+    }
+  }
+  function attachDetailHandlers(){
+    document.getElementById('detail-overlay').addEventListener('click', e=>{
+      if(e.target.id==='detail-overlay'){ closeDetail(); return; }
+      if(detailMenuOpen && !e.target.closest('.ss-detail-menu') && !e.target.closest('.ss-detail-menu-btn')){ detailMenuOpen = false; renderCalendar(); }
+    });
+    document.getElementById('detail-close').onclick = closeDetail;
+    document.getElementById('detail-menu-btn').onclick = (e)=>{ e.stopPropagation(); detailMenuOpen = !detailMenuOpen; renderCalendar(); };
+    const editBtn = document.getElementById('detail-edit');
+    if(editBtn) editBtn.onclick = ()=>{ const id = detailModal; openEventModal('edit', null, id); };
+    const copyBtn = document.getElementById('detail-copy');
+    if(copyBtn) copyBtn.onclick = ()=>openCopyModal(detailModal);
+    const delBtn = document.getElementById('detail-delete');
+    if(delBtn) delBtn.onclick = async()=>{
+      if(!confirm('この予定を削除しますか？')) return;
+      state.projects = state.projects.filter(p=>p.id!==detailModal);
+      await saveProjects();
+      closeDetail();
+      toast('削除しました');
+    };
+    renderDetailImages();
+  }
+
+  function openCopyModal(projectId){
+    const p = state.projects.find(p=>p.id===projectId);
+    if(!p) return;
+    copyModal = { projectId, date: p.start, calendarId: p.calendarId };
+    detailMenuOpen = false;
+    renderCalendar();
+  }
+  function closeCopyModal(){ copyModal = null; renderCalendar(); }
+  function renderCopyModalHtml(){
+    const p = state.projects.find(p=>p.id===copyModal.projectId);
+    if(!p) return '';
+    return `
+    <div class="ss-modal-overlay" id="copy-overlay">
+      <div class="ss-modal">
+        <div class="ss-modal-head">
+          <h3>予定をコピー</h3>
+          <button class="ss-x" id="copy-close" style="font-size:20px;">×</button>
+        </div>
+        <div class="ss-field"><label>コピー先の日付</label><input type="date" id="copy-date" value="${copyModal.date}"></div>
+        <div class="ss-field"><label>コピー先のカレンダー</label>
+          <select id="copy-calendar">${state.calendars.map(c=>`<option value="${c.id}" ${copyModal.calendarId===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
+        </div>
+        <div class="ss-modal-actions">
+          <div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="ss-btn ghost" id="copy-cancel">キャンセル</button>
+            <button class="ss-btn amber" id="copy-confirm">コピーする</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+  function attachCopyHandlers(){
+    document.getElementById('copy-overlay').addEventListener('click', e=>{ if(e.target.id==='copy-overlay') closeCopyModal(); });
+    document.getElementById('copy-close').onclick = closeCopyModal;
+    document.getElementById('copy-cancel').onclick = closeCopyModal;
+    document.getElementById('copy-confirm').onclick = async()=>{
+      const p = state.projects.find(p=>p.id===copyModal.projectId);
+      if(!p) return;
+      const newDate = document.getElementById('copy-date').value || p.start;
+      const newCalendarId = document.getElementById('copy-calendar').value;
+      const durationDays = Math.round((new Date(p.end+'T00:00:00') - new Date(p.start+'T00:00:00')) / 86400000);
+      const clone = JSON.parse(JSON.stringify(p));
+      delete clone.id;
+      clone.start = newDate;
+      clone.end = addDays(newDate, durationDays);
+      clone.calendarId = newCalendarId;
+      clone.createdAt = new Date().toISOString();
+      state.projects.push(Object.assign({id:uid('p')}, clone));
+      await saveProjects();
+      copyModal = null;
+      detailModal = null;
+      toast('コピーしました');
+      renderCalendar();
+    };
   }
 
   function openEventModal(mode, dateStr, projectId){
     dayListModal = null;
+    detailModal = null;
+    detailMenuOpen = false;
+    copyModal = null;
     if(mode==='new'){
       eventModal = { mode:'new', data:{
         name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
@@ -806,14 +1006,20 @@
     renderCalendar();
     fetchEventImages();
   }
+  async function fetchImageDataUrl(key){
+    if(imageCache[key]) return imageCache[key];
+    const val = await apiGet(key);
+    if(val && val.dataUrl){ imageCache[key] = val.dataUrl; return val.dataUrl; }
+    return null;
+  }
   async function fetchEventImages(){
     if(!eventModal) return;
     const list = eventModal.data.images||[];
     for(const im of list){
       if(im.dataUrl || !im.key) continue;
       try{
-        const val = await apiGet(im.key);
-        if(val && eventModal && eventModal.data.images.includes(im)){ im.dataUrl = val.dataUrl; renderEvImages(); }
+        const dataUrl = await fetchImageDataUrl(im.key);
+        if(dataUrl && eventModal && eventModal.data.images.includes(im)){ im.dataUrl = dataUrl; renderEvImages(); }
       }catch(e){ /* ignore, thumbnail stays as loading state */ }
     }
   }
