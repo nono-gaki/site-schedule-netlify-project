@@ -117,6 +117,9 @@
   .ss-proposal-card .ptitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--navy);margin-bottom:6px;}
   .ss-typing{align-self:flex-start;color:var(--muted);font-size:12px;padding:4px 8px;}
   .ss-cal-legend{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .ss-cal-legend-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .ss-cal-add-btn{width:27px;height:27px;border-radius:50%;border:1px dashed var(--line);background:#fff;color:var(--muted);font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;}
+  .ss-cal-add-btn:hover{border-color:var(--amber);color:var(--amber-deep);border-style:solid;}
   .ss-cal-legend-item{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 6px;font-size:12px;cursor:pointer;background:#fff;}
   .ss-cal-legend-item.off{opacity:.35;}
   .ss-modal-overlay{position:fixed;inset:0;background:rgba(20,30,40,0.55);display:flex;align-items:flex-start;justify-content:center;padding:30px 14px;overflow-y:auto;z-index:200;}
@@ -196,6 +199,8 @@
     .ss-cal-toolbar{gap:6px;}
     .ss-modal-overlay{padding:0;align-items:flex-end;}
     .ss-modal{max-width:100%;width:100%;border-radius:14px 14px 0 0;max-height:92vh;overflow-y:auto;padding:16px 14px 20px;}
+    #daylist-overlay{align-items:stretch;}
+    #daylist-overlay .ss-modal{height:100vh;max-height:100vh;border-radius:0;}
     .ss-chat-wrap{height:72vh;}
     .ss-chat-input-row{flex-wrap:wrap;}
     .ss-chat-input-row textarea{flex:1 1 100%;}
@@ -210,7 +215,6 @@
     <div class="ss-header-top">
       <div>
         <h1 class="ss-title">現場<span>スケジュール</span>管理</h1>
-        <div class="ss-sub">SITE OPS &amp; OVERTIME CONTROL — チーム共有データ</div>
       </div>
     </div>
     <div class="ss-tabs" id="ss-tabs"></div>
@@ -716,8 +720,10 @@
     $main.innerHTML = `
       <div class="ss-card">
         <div class="ss-cal-toolbar">
-          <div class="ss-cal-legend" id="cal-legend"></div>
-          <button class="ss-btn ghost small" id="cal-add-calendar">＋ カレンダーを追加</button>
+          <div class="ss-cal-legend-row">
+            <div class="ss-cal-legend" id="cal-legend"></div>
+            <button type="button" class="ss-cal-add-btn" id="cal-add-calendar" title="カレンダーを追加">＋</button>
+          </div>
         </div>
         <div class="ss-cal-toolbar">
           <span id="cal-label" class="disp" style="font-size:20px;"></span>
