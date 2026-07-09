@@ -88,7 +88,6 @@
   .ss-cal-cell.today{border-color:var(--amber);border-width:2px;}
   .ss-cal-cell .d{font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:3px;}
   .ss-cal-item{border-radius:4px;padding:1px 5px;margin-bottom:2px;font-size:10.5px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .ss-cal-dots{display:none;}
   .ss-taskchip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:3px 10px 3px 6px;font-size:12px;margin:2px;}
   .ss-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   .ss-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.2);}
@@ -164,12 +163,11 @@
     .ss-taskchip,.ss-skillchip,.ss-chiptoggle{font-size:12.5px;padding:5px 12px;}
     button.ss-btn.small{padding:7px 13px;font-size:12.5px;}
     .ss-daylist-item{padding:12px 4px;}
-    .ss-cal-grid{gap:3px;}
-    .ss-cal-cell{min-height:40px;padding:5px 4px;font-size:11px;}
-    .ss-cal-cell .d{font-size:11px;}
-    .ss-cal-item{display:none;}
-    .ss-cal-dots{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px;}
-    .ss-cal-dots .ss-dot{width:7px;height:7px;}
+    .ss-cal-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;}
+    .ss-cal-dow{font-size:10px;padding-bottom:2px;}
+    .ss-cal-cell{min-height:64px;padding:3px 2px;font-size:11px;border-radius:4px;}
+    .ss-cal-cell .d{font-size:11px;margin-bottom:2px;}
+    .ss-cal-item{font-size:9.5px;padding:2px 3px;margin-bottom:2px;border-radius:3px;line-height:1.4;}
     .ss-cal-toolbar{gap:6px;}
     .ss-modal-overlay{padding:0;align-items:flex-end;}
     .ss-modal{max-width:100%;width:100%;border-radius:14px 14px 0 0;max-height:92vh;overflow-y:auto;padding:16px 14px 20px;}
@@ -201,7 +199,7 @@
   const CAL_COLORS = ['#3E6E9E','#B87A1E','#5E8E5A','#8A5AA0','#C05C5C','#2E7D74','#9E7A3A','#4A5568'];
   const EVENT_COLORS = ['#3E6E9E','#4FA3C7','#2E7D74','#5E8E5A','#9E7A3A','#B87A1E','#C05C5C','#C77DB0','#8A5AA0','#4A5568'];
   let state = { equipmentTypes: [], workTypes: [], workers: [], vendors: [], projects: [], templates: [], calendars: [] };
-  let tab = 'dashboard';
+  let tab = 'calendar';
   let calMonth = new Date(); calMonth.setDate(1);
   let calVisible = {}; // calendarId -> bool
   let eventModal = null; // {mode:'new'|'edit', data:{...}, id?, originalImageKeys?}
@@ -218,8 +216,8 @@
   const $tabs = document.getElementById('ss-tabs');
 
   function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-  function todayStr(){ return new Date().toISOString().slice(0,10); }
-  function fmtDate(d){ return d.toISOString().slice(0,10); }
+  function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function todayStr(){ return fmtDate(new Date()); }
   function overlap(aS,aE,bS,bE){ return aS<=bE && bS<=aE; }
   function eqName(id){ const e=state.equipmentTypes.find(e=>e.id===id); return e?e.name:''; }
   function eqColorIdx(id){ const i=state.equipmentTypes.findIndex(e=>e.id===id); return i<0?'#9AA5AB':COLORS[i%COLORS.length]; }
@@ -385,7 +383,7 @@
   }
 
   function renderTabs(){
-    const tabs = [['dashboard','ダッシュボード'],['chat','AIチャットで案件登録'],['workers','人員・スキル管理'],['vendors','外注先管理'],['calendar','カレンダー']];
+    const tabs = [['calendar','カレンダー'],['dashboard','ダッシュボード'],['chat','AIチャットで案件登録'],['workers','人員・スキル管理'],['vendors','外注先管理']];
     $tabs.innerHTML = tabs.map(([id,label])=>`<button class="ss-tab ${tab===id?'active':''}" data-tab="${id}">${label}</button>`).join('');
     $tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; eventModal=null; render(); });
   }
@@ -740,11 +738,11 @@
       const dateStr = fmtDate(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
       const items = state.projects.filter(p => p.start<=dateStr && dateStr<=p.end && calVisible[p.calendarId]!==false);
       html += `<div class="ss-cal-cell ${dateStr===today?'today':''}" data-day="${dateStr}"><div class="d">${d}</div>
-        ${items.map(p=>`<div class="ss-cal-item" style="background:${eventColor(p)}" title="${p.name}">${p.startTime?(p.startTime+' '):''}${p.name}${p.url?' 🔗':''}</div>`).join('')}
-        <div class="ss-cal-dots">${items.map(p=>`<span class="ss-dot" style="background:${eventColor(p)}"></span>`).join('')}</div>
+        ${items.map(p=>`<div class="ss-cal-item" style="background:${eventColor(p)}" data-open-event="${p.id}" title="${p.name}">${p.startTime?(p.startTime+' '):''}${p.name}${p.url?' 🔗':''}</div>`).join('')}
       </div>`;
     }
     $g.innerHTML = html;
+    $g.querySelectorAll('.ss-cal-item[data-open-event]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); openEventModal('edit', null, el.dataset.openEvent); });
     $g.querySelectorAll('.ss-cal-cell').forEach(cell=>cell.onclick=()=>{ openDayList(cell.dataset.day); });
 
     if(eventModal) attachEventModalHandlers();
@@ -963,6 +961,25 @@
     catch(e){ console.error('delete blob failed', e); }
   }
 
+  function syncEvFormToData(){
+    const d = eventModal.data;
+    d.name = document.getElementById('ev-name').value;
+    d.calendarId = document.getElementById('ev-calendar').value;
+    d.start = document.getElementById('ev-start').value;
+    d.end = document.getElementById('ev-end').value;
+    d.startTime = document.getElementById('ev-start-time').value;
+    d.endTime = document.getElementById('ev-end-time').value;
+    d.address = document.getElementById('ev-address').value;
+    d.url = document.getElementById('ev-url').value;
+    d.workDetail = document.getElementById('ev-memo').value;
+    d.equipmentTypeId = document.getElementById('ev-eq').value || null;
+    d.workTypeId = document.getElementById('ev-wt').value || null;
+    d.requiredCount = Number(document.getElementById('ev-count').value)||1;
+    d.salesRep = document.getElementById('ev-sales').value;
+    d.budgetAmount = Number(document.getElementById('ev-budget').value)||0;
+    d.actualAmount = Number(document.getElementById('ev-actual').value)||0;
+  }
+
   function attachEventModalHandlers(){
     const d = eventModal.data;
     renderEvImages();
@@ -981,13 +998,10 @@
     document.getElementById('ev-overlay').addEventListener('click', (e)=>{ if(e.target.id==='ev-overlay') closeEventModal(); });
     document.getElementById('ev-close').onclick = closeEventModal;
     document.getElementById('ev-cancel').onclick = closeEventModal;
-    document.getElementById('ev-url').addEventListener('change', ()=>{
-      d.url = document.getElementById('ev-url').value.trim();
-      renderCalendar();
-    });
-    document.getElementById('ev-color-swatches').querySelector('[data-color-auto]').onclick = ()=>{ d.color = null; renderCalendar(); };
-    document.querySelectorAll('#ev-color-swatches [data-color]').forEach(sw=>sw.onclick=()=>{ d.color = sw.dataset.color; renderCalendar(); });
+    document.getElementById('ev-color-swatches').querySelector('[data-color-auto]').onclick = ()=>{ syncEvFormToData(); d.color = null; renderCalendar(); };
+    document.querySelectorAll('#ev-color-swatches [data-color]').forEach(sw=>sw.onclick=()=>{ syncEvFormToData(); d.color = sw.dataset.color; renderCalendar(); });
     document.querySelectorAll('#ev-participants [data-ev-p]').forEach(chip=>chip.onclick=()=>{
+      syncEvFormToData();
       const wid = chip.dataset.evP;
       d.assignedWorkerIds = d.assignedWorkerIds||[];
       if(d.assignedWorkerIds.includes(wid)) d.assignedWorkerIds = d.assignedWorkerIds.filter(x=>x!==wid);
@@ -999,6 +1013,7 @@
       const start = document.getElementById('ev-start').value;
       const end = document.getElementById('ev-end').value;
       const result = suggest({equipmentTypeId:d.equipmentTypeId, workTypeId:d.workTypeId, requiredLevel:d.requiredLevel||3, start, end, requiredCount: Number(document.getElementById('ev-count').value)||1}, eventModal.id||null);
+      syncEvFormToData();
       d.assignedWorkerIds = result.picked.map(c=>c.worker.id);
       if(result.shortage>0) toast(`⚠ ${result.shortage}名不足しています。外注を検討してください`);
       else toast('スキル・残業状況から人員を提案しました');
@@ -1008,11 +1023,13 @@
       const vname = document.getElementById('ev-ve-name').value.trim();
       const vamount = Number(document.getElementById('ev-ve-amount').value)||0;
       if(!vname) return;
+      syncEvFormToData();
       d.vendorEntries = d.vendorEntries||[];
       d.vendorEntries.push({vendorName:vname, amount:vamount, note:''});
       renderCalendar();
     };
     document.querySelectorAll('[data-del-ve]').forEach(b=>b.onclick=()=>{
+      syncEvFormToData();
       d.vendorEntries.splice(Number(b.dataset.delVe),1);
       renderCalendar();
     });
