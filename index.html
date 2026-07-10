@@ -297,7 +297,7 @@
     {name:'ブライト・オレンジ', hex:'#FB8C00'},
     {name:'ソフト・バイオレット', hex:'#9575CD'},
   ];
-  let state = { equipmentTypes: [], workTypes: [], specialWorks: [], workers: [], vendors: [], projects: [], templates: [], calendars: [] };
+  let state = { equipmentTypes: [], workTypes: [], specialWorks: [], workers: [], vendors: [], disposalSites: [], projects: [], templates: [], calendars: [] };
   let tab = 'calendar';
   let calMonth = new Date(); calMonth.setDate(1);
   let calVisible = {}; // calendarId -> bool
@@ -320,6 +320,18 @@
   let chatFields = {};
   let chatBusy = false;
   let chatPendingProposal = null;
+  const chatTravelCache = {};
+  async function getTravelMinutes(origin, destination){
+    const key = `${origin}|${destination}`;
+    if(key in chatTravelCache) return chatTravelCache[key];
+    try{
+      const res = await fetch(`/.netlify/functions/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`);
+      if(!res.ok){ chatTravelCache[key] = null; return null; }
+      const data = await res.json();
+      chatTravelCache[key] = (typeof data.minutes === 'number') ? data.minutes : null;
+    }catch(e){ chatTravelCache[key] = null; }
+    return chatTravelCache[key];
+  }
 
   const $main = document.getElementById('ss-main');
   const $tabs = document.getElementById('ss-tabs');
@@ -388,6 +400,7 @@
       state.specialWorks = master.specialWorks || [];
       state.workers = master.workers || [];
       state.vendors = master.vendors || [];
+      state.disposalSites = master.disposalSites || [];
       state.templates = master.templates || [];
       state.calendars = master.calendars || [];
     } else {
@@ -396,6 +409,7 @@
       state.specialWorks = [];
       state.workers = [];
       state.vendors = [];
+      state.disposalSites = [];
       state.templates = [];
       state.calendars = [
         {id:uid('cal'), name:'メイン', color:CAL_COLORS[0]},
@@ -420,7 +434,7 @@
     }
   }
   async function saveMaster(){
-    try{ await apiSet('master-data-v4', {equipmentTypes:state.equipmentTypes, workTypes:state.workTypes, specialWorks:state.specialWorks, workers:state.workers, vendors:state.vendors, templates:state.templates, calendars:state.calendars}); }
+    try{ await apiSet('master-data-v4', {equipmentTypes:state.equipmentTypes, workTypes:state.workTypes, specialWorks:state.specialWorks, workers:state.workers, vendors:state.vendors, disposalSites:state.disposalSites, templates:state.templates, calendars:state.calendars}); }
     catch(e){ console.error('save master failed', e); toast('⚠ 保存に失敗しました。通信環境をご確認ください'); }
   }
   async function saveProjects(){
@@ -632,6 +646,20 @@
       </div>
 
       <div class="ss-card">
+        <div class="ss-card-title">廃棄場マスタ <small>移動時間・営業時間をAIチャットの提案に使います</small></div>
+        <div id="ss-disposal-list"></div>
+        <div class="ss-row" style="margin-top:8px;">
+          <input type="text" id="new-disposal-name" placeholder="廃棄場名">
+          <input type="text" id="new-disposal-address" placeholder="住所">
+        </div>
+        <div class="ss-row" style="margin-top:6px;">
+          <div class="ss-field" style="margin-bottom:0;"><label>営業開始</label><input type="time" id="new-disposal-open" value="09:00"></div>
+          <div class="ss-field" style="margin-bottom:0;"><label>営業終了</label><input type="time" id="new-disposal-close" value="17:00"></div>
+          <button class="ss-btn ghost small" id="add-disposal" style="flex:0 0 auto;align-self:flex-end;">追加</button>
+        </div>
+      </div>
+
+      <div class="ss-card">
         <div class="ss-card-title">工事内容テンプレート <small>機器×作業内容ごとの標準時間・標準人数。AIチャットの提案にも使われます</small></div>
         <div class="ss-row">
           <select id="tp-eq">${state.equipmentTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
@@ -707,6 +735,17 @@
       const v = document.getElementById('new-sw').value.trim(); if(!v) return;
       state.specialWorks.push({id:uid('sw'),name:v}); await saveMaster(); render();
     };
+
+    renderDisposalList();
+    document.getElementById('add-disposal').onclick = async()=>{
+      const name = document.getElementById('new-disposal-name').value.trim();
+      const address = document.getElementById('new-disposal-address').value.trim();
+      const openTime = document.getElementById('new-disposal-open').value || '09:00';
+      const closeTime = document.getElementById('new-disposal-close').value || '17:00';
+      if(!name || !address){ toast('廃棄場名と住所を入力してください'); return; }
+      state.disposalSites.push({id:uid('ds'), name, address, openTime, closeTime});
+      await saveMaster(); render();
+    };
     document.querySelectorAll('#tp-sw [data-tp-sw]').forEach(chip=>chip.onclick=()=>{
       const id = chip.dataset.tpSw;
       if(tpSelectedSpecialWorkIds.includes(id)) tpSelectedSpecialWorkIds = tpSelectedSpecialWorkIds.filter(x=>x!==id);
@@ -744,6 +783,25 @@
     };
   }
 
+  function renderDisposalList(){
+    const $d = document.getElementById('ss-disposal-list');
+    if(!$d) return;
+    if(state.disposalSites.length===0){ $d.innerHTML = `<div class="ss-empty">廃棄場が未登録です。</div>`; return; }
+    $d.innerHTML = state.disposalSites.map(s=>`
+      <div class="ss-worker-card">
+        <div class="top">
+          <span class="wname" style="flex:1;">${s.name}</span>
+          <span class="mono" style="font-size:11px;color:var(--muted);">${s.openTime}〜${s.closeTime}</span>
+          <button class="ss-x" data-del-disposal="${s.id}">×</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);">${s.address}</div>
+      </div>
+    `).join('');
+    $d.querySelectorAll('[data-del-disposal]').forEach(b=>b.onclick=async()=>{
+      state.disposalSites = state.disposalSites.filter(s=>s.id!==b.dataset.delDisposal);
+      await saveMaster(); renderDisposalList();
+    });
+  }
   function renderTemplateList(){
     const $t = document.getElementById('tp-list');
     if(!$t) return;
@@ -2006,19 +2064,49 @@
       if(btn) btn.onclick = ()=>confirmChatProposal(chatPendingProposal);
     }
   }
-  function buildChatSystemPrompt(){
+  async function buildChatSystemPrompt(){
     const eq = state.equipmentTypes.map(t=>({id:t.id,name:t.name}));
     const wt = state.workTypes.map(t=>({id:t.id,name:t.name}));
     const workerNames = state.workers.map(w=>w.name);
     const templateCombos = state.templates.map(t=>`${eqName(t.equipmentTypeId)}／${wtName(t.workTypeId)}（${t.durationValue}${t.durationUnit}・${t.requiredCount}人）`);
+
+    const today = todayStr();
+    const horizon = addDays(today, 14);
+    const upcoming = state.projects.filter(p=>p.start>=today && p.start<=horizon)
+      .sort((a,b)=> a.start<b.start?-1:1)
+      .map(p=>`${p.start}${p.startTime?(' '+p.startTime):''} ${p.name}${p.address?'（'+p.address+'）':''}`);
+
+    let disposalContext = '';
+    if(state.disposalSites.length){
+      disposalContext = `\n登録済み廃棄場（住所・営業時間）:\n` + state.disposalSites.map(s=>`- ${s.name}: ${s.address}、営業時間 ${s.openTime}〜${s.closeTime}`).join('\n');
+      const workTypeName = wtName(chatFields.workTypeId) || '';
+      const isDisposalRelevant = /入替|廃棄|撤去/.test(workTypeName) || chatFields.removal;
+      if(isDisposalRelevant && chatFields.address){
+        const lines = [];
+        for(const site of state.disposalSites){
+          const mins = await getTravelMinutes(chatFields.address, site.address);
+          if(mins!=null) lines.push(`- 現場「${chatFields.address}」から「${site.name}」まで車で約${mins}分`);
+        }
+        if(lines.length) disposalContext += `\n\n現場から廃棄場までの移動時間（参考値。道路状況により変動します）:\n` + lines.join('\n');
+      }
+    }
+
     return `あなたは厨房設備工事会社の案件登録アシスタントです。ユーザーとの会話から、新しい工事案件の情報を聞き出してください。
 今日の日付は ${todayStr()} です。相対的な日付表現（来週・明日など）はこれを基準に計算してください。
+昼休憩は12:00〜13:00です。作業時間や移動時間を検討する際、この時間帯には作業・移動をさせないでください。
 
 登録済みマスタ（該当するIDを使ってください。無理に一致させず、該当がなければnullにしてください）:
 機器種類: ${JSON.stringify(eq)}
 作業内容: ${JSON.stringify(wt)}
 登録済み人員: ${JSON.stringify(workerNames)}
 登録済み工事テンプレート: ${JSON.stringify(templateCombos)}
+${disposalContext}
+
+直近14日間の登録済み予定（参考。日程提案の際に埋まっている日を避ける参考にしてください）:
+${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
+
+【搬出・廃棄を伴う工事（入替え・廃棄・撤去など）の場合】
+現場での作業時間、廃棄場までの移動時間、廃棄場の営業時間、昼休憩を踏まえて、その日のうちに廃棄場への搬入が間に合うかを検討してください。間に合わない場合は、翌営業日以降に廃棄場へ搬入する前提で日程・注意事項を提案し、その判断理由を fields.logisticsNote に簡潔に記載してください（例：「〇〇廃棄場は17時閉場のため、作業完了が17時を過ぎる場合は翌営業日搬入としてください」）。判断材料が不足する場合は、その旨を質問してください。
 
 【重要】以下の場合は status を "ready" にする前に、必ず追加で1つずつ質問してください：
 - 登録済み人員が0人、またはユーザーが言及した担当者の名前が登録済み人員に見つからない場合 → 「今回担当される方のお名前を教えてください（複数可）」のように質問し、fields.newWorkerNames に名前の配列を入れてください。
@@ -2042,7 +2130,8 @@
     "newWorkerNames": ["担当者名", ...] または null,
     "newTemplateDuration": 数値 または null,
     "newTemplateUnit": "時間"または"日" または null,
-    "newTemplateCount": 数値 または null
+    "newTemplateCount": 数値 または null,
+    "logisticsNote": "廃棄場の営業時間・移動時間を踏まえた判断や注意事項。該当なければnull"
   }
 }
 一度に聞く質問は1つだけにしてください。これまでの会話で判明している項目は fields に必ず引き継いでください。`;
@@ -2059,7 +2148,7 @@
     try{
       const response = await fetch('/.netlify/functions/chat', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ system: buildChatSystemPrompt(), messages: chatApiHistory })
+        body: JSON.stringify({ system: await buildChatSystemPrompt(), messages: chatApiHistory })
       });
       if(!response.ok) throw new Error('chat function error');
       const data = await response.json();
@@ -2068,9 +2157,13 @@
       let parsed;
       try{ parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
       catch(e){ parsed = {status:'ask', reply: raw || 'すみません、うまく聞き取れませんでした。もう一度お願いします。', fields:{}}; }
+      const prevLogisticsNote = chatFields.logisticsNote || null;
       chatFields = Object.assign({}, chatFields, parsed.fields||{});
       chatBusy = false;
       chatMessages.push({role:'ai', text: parsed.reply || '...'});
+      if(chatFields.logisticsNote && chatFields.logisticsNote!==prevLogisticsNote){
+        chatMessages.push({role:'system', text:`🚚 ${chatFields.logisticsNote}`});
+      }
       if(parsed.status === 'ready'){
         if(chatFields.newTemplateDuration && chatFields.newTemplateUnit && chatFields.newTemplateCount && chatFields.equipmentTypeId && chatFields.workTypeId){
           const existing = findTemplate(chatFields.equipmentTypeId, chatFields.workTypeId);
@@ -2118,6 +2211,7 @@
     if(fields.refrigerant) warnings.push('冷媒工事の言及あり：冷媒資格者を含めて配置してください。');
     if(fields.removal) warnings.push('搬出・撤去あり：車両・台車の手配を忘れずに。');
     if(fields.note) warnings.push(fields.note);
+    if(fields.logisticsNote) warnings.push(`🚚 ${fields.logisticsNote}`);
     if(shortage>0) warnings.push(`内部人員だけでは${shortage}名不足しています。外注の手配を検討してください。`);
     return {
       name: fields.name || '(名称未設定)', address: fields.address||'', equipmentTypeId: fields.equipmentTypeId,
