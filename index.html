@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="LIFE TREE">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy:#16232F;--navy-2:#1F3040;--paper:#F3F5F4;--card:#FFFFFF;--line:#DBE1E2;--ink:#1B2530;--muted:#748089;
@@ -18,7 +18,7 @@
   *{box-sizing:border-box;}
   #ss-root button{touch-action:manipulation;}
   #ss-root{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100%;padding:0;font-size:14px;line-height:1.5;}
-  #ss-root .mono{font-family:'JetBrains Mono',monospace;}
+  #ss-root .mono{font-family:'Inter',sans-serif;}
   #ss-root h1,#ss-root h2,#ss-root h3,#ss-root .disp{font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em;}
   .ss-header{
     background:repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 28px),
@@ -29,7 +29,7 @@
   .ss-header-top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
   .ss-title{font-size:26px;font-weight:700;text-transform:uppercase;margin:0;}
   .ss-title span{color:var(--amber);}
-  .ss-sub{font-size:12px;color:#B9C4CB;font-family:'JetBrains Mono',monospace;letter-spacing:.03em;}
+  .ss-sub{font-size:12px;color:#B9C4CB;font-family:'Inter',sans-serif;letter-spacing:.03em;}
   .ss-tabs{display:flex;gap:2px;overflow-x:auto;}
   .ss-tab{padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14.5px;color:#C3CDD3;background:transparent;border:none;cursor:pointer;border-radius:8px 8px 0 0;white-space:nowrap;letter-spacing:.03em;}
   .ss-tab.active{background:var(--paper);color:var(--navy);}
@@ -51,10 +51,10 @@
   @media(max-width:800px){.ss-grid.cols-3,.ss-grid.cols-4{grid-template-columns:1fr 1fr;}}
   @media(max-width:520px){.ss-grid.cols-3,.ss-grid.cols-4{grid-template-columns:1fr;}}
   .ss-stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 14px;}
-  .ss-stat b{display:block;font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--navy);}
+  .ss-stat b{display:block;font-family:'Inter',sans-serif;font-size:20px;color:var(--navy);}
   .ss-stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
   .ss-alert{display:flex;align-items:center;gap:10px;background:var(--danger-bg);color:#8A2F1F;border:1px solid #EFC3B8;border-radius:8px;padding:9px 13px;margin-bottom:8px;font-size:13px;}
-  .ss-alert b{font-family:'JetBrains Mono',monospace;}
+  .ss-alert b{font-family:'Inter',sans-serif;}
   .ss-empty{color:var(--muted);font-size:13px;padding:14px 4px;}
   input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{font-family:'Inter',sans-serif;border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px;background:#fff;color:var(--ink);width:100%;}
   textarea{resize:vertical;min-height:60px;font-family:'Inter',sans-serif;font-size:13px;}
@@ -81,43 +81,47 @@
   table.ss-table th{text-align:left;font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;font-size:11px;color:var(--muted);letter-spacing:.05em;padding:6px 8px;border-bottom:1px solid var(--line);}
   table.ss-table td{padding:7px 8px;border-bottom:1px solid #EEF1F1;vertical-align:top;}
   .ss-table-wrap{overflow-x:auto;}
+  .ss-table select,.ss-table input{width:auto;min-width:80px;}
+  .ss-drag-handle{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;color:var(--muted);text-align:center;font-size:16px;}
   .ss-pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
   .ss-pill.emp{background:#E4EAF3;color:#2A4A7A;}
   .ss-pill.out{background:#F1E7F5;color:#6A3A82;}
-  .ss-badge{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:2px solid var(--navy);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;color:var(--navy);flex-shrink:0;}
+  .ss-badge{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:2px solid var(--navy);font-family:'Inter',sans-serif;font-weight:700;font-size:12px;color:var(--navy);flex-shrink:0;}
   .ss-badge.warn{border-color:var(--danger);color:var(--danger);}
   .ss-cand{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px dashed var(--line);}
   .ss-cand:last-child{border-bottom:none;}
   .ss-cand .name{font-weight:600;flex:1;}
-  .ss-cand .meta{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .ss-cand .meta{font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;}
   .ss-bar{height:6px;border-radius:3px;background:#EDEFEF;overflow:hidden;width:70px;flex-shrink:0;}
   .ss-bar i{display:block;height:100%;background:var(--ok);}
   .ss-bar i.warn{background:var(--danger);}
   .ss-shortage{background:#E3F6F8;border:1px solid #B8E4E9;border-radius:8px;padding:10px 13px;font-size:13px;color:#0E6B78;margin-top:8px;}
   .ss-cal-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
-  .ss-cal-layout{display:flex;gap:16px;align-items:flex-start;}
-  .ss-cal-main{flex:1;min-width:0;}
-  .ss-cal-side{width:300px;flex-shrink:0;max-height:80vh;overflow-y:auto;}
+  .ss-cal-layout{display:flex;gap:16px;align-items:stretch;height:calc(100vh - 172px);}
+  .ss-cal-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;}
+  .ss-cal-side{width:300px;flex-shrink:0;height:100%;overflow-y:auto;}
   .ss-cal-side-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
   .ss-cal-side-head h3{margin:0;font-size:17px;flex:1;}
-  .ss-cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:2px;}
-  .ss-cal-swipearea{overflow:hidden;}
-  .ss-cal-track{display:flex;width:300%;transform:translateX(-33.3333%);}
+  .ss-cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:2px;flex-shrink:0;}
+  .ss-cal-card{display:flex;flex-direction:column;flex:1;min-height:0;}
+  .ss-cal-swipearea{overflow:hidden;flex:1;min-height:0;}
+  .ss-cal-track{display:flex;width:300%;height:100%;transform:translateX(-33.3333%);}
   .ss-cal-track.dragging{transition:none;}
   .ss-cal-track:not(.dragging){transition:transform 0.24s ease-out;}
-  .ss-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:33.3333%;flex-shrink:0;}
+  .ss-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(40px,1fr);gap:4px;width:33.3333%;height:100%;flex-shrink:0;}
   .ss-cal-dow{font-size:11px;text-align:center;color:var(--muted);text-transform:uppercase;font-weight:600;padding-bottom:4px;}
-  .ss-cal-cell{min-height:104px;border:1px solid var(--line);border-radius:6px;padding:4px;font-size:11px;background:#fff;cursor:pointer;}
+  .ss-cal-cell{min-height:0;border:1px solid var(--line);border-radius:6px;padding:4px;font-size:11px;background:#fff;cursor:pointer;overflow:hidden;}
   .ss-cal-cell:hover{border-color:var(--amber);}
   .ss-cal-cell.today{border-color:var(--amber);border-width:2px;}
   .ss-cal-cell.other-month{opacity:.4;}
   .ss-cal-cell.selected{background:var(--paper);box-shadow:inset 0 0 0 2px var(--navy);}
-  .ss-cal-cell .d{font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:3px;}
+  .ss-cal-cell .d{font-family:'Inter',sans-serif;color:var(--muted);margin-bottom:3px;}
   .ss-cal-cell .d.sat{color:#2F6FDE;}
   .ss-cal-cell .d.sun{color:#D2503C;}
   .ss-cal-item{border-radius:3px;padding:0 4px;margin-bottom:1px;font-size:10px;line-height:1.6;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ss-cal-more{font-size:10px;color:var(--muted);font-weight:600;padding:0 4px;line-height:1.6;}
-  .ss-taskchip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:3px 10px 3px 6px;font-size:12px;margin:2px;}
+  .ss-taskchip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:3px 10px 3px 6px;font-size:12px;margin:2px;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+  .ss-taskchip.dragging{opacity:.45;box-shadow:0 4px 10px rgba(0,0,0,.2);}
   .ss-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   .ss-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.2);}
   .ss-outsource-row{background:var(--violet-bg);border-radius:8px;padding:10px 12px;margin-top:6px;}
@@ -240,14 +244,13 @@
     button.ss-btn.small{padding:7px 13px;font-size:12.5px;}
     .ss-daylist-item{padding:14px 2px;gap:12px;}
     .ss-daylist-item .meta,.ss-daylist-item .mono{font-size:12.5px;}
+    .ss-cal-layout{height:calc(100dvh - 200px);}
     .ss-cal-side{display:none;}
-    .ss-cal-card{border:none;border-radius:0;background:transparent;margin:-14px -10px 0;padding:10px 3px 4px;display:flex;flex-direction:column;min-height:calc(100dvh - 210px);}
-    .ss-cal-swipearea{flex:1;display:flex;flex-direction:column;}
-    .ss-cal-track{flex:1;}
-    .ss-cal-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;grid-auto-rows:1fr;height:100%;}
+    .ss-cal-card{border:none;border-radius:0;background:transparent;margin:-14px -10px 0;padding:10px 3px 4px;}
+    .ss-cal-grid{grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(34px,1fr);gap:1px;}
     .ss-cal-dow-row{grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;}
     .ss-cal-dow{font-size:10.5px;padding-bottom:4px;}
-    .ss-cal-cell{min-height:92px;padding:3px 2px;font-size:12px;border:none;border-radius:0;background:transparent;}
+    .ss-cal-cell{padding:3px 2px;font-size:12px;border:none;border-radius:0;background:transparent;}
     .ss-cal-cell:hover{border:none;}
     .ss-cal-cell.today{border:none;background:#E3F6F8;border-radius:6px;}
     .ss-cal-cell.selected{box-shadow:inset 0 0 0 2px var(--navy);border-radius:6px;}
@@ -314,6 +317,7 @@
   const imageCache = {}; // key -> dataUrl
   let skillFormOpenWorkerId = null;
   let tpSelectedSpecialWorkIds = [];
+  let chipMenuState = null; // {type, id, x, y}
   let outsourceFormOpenId = null; // reused inside modal context via eventModal
   let chatMessages = [];
   let chatApiHistory = [];
@@ -602,9 +606,8 @@
       .reduce((s,p)=> s + (p.vendorEntries||[]).reduce((s2,v)=>s2+(v.amount||0),0), 0);
 
     $main.innerHTML = `
-      <div class="ss-grid cols-4">
+      <div class="ss-grid cols-3">
         <div class="ss-stat"><b class="mono">${state.workers.length}</b><span>登録人員数</span></div>
-        <div class="ss-stat"><b class="mono">${state.projects.length}</b><span>登録予定数</span></div>
         <div class="ss-stat"><b class="mono">${state.calendars.length}</b><span>カレンダー数</span></div>
         <div class="ss-stat"><b class="mono">${yen(monthlyOutsourceCost)}</b><span>今月の外注費用</span></div>
       </div>
@@ -630,6 +633,112 @@
   }
 
   // ---------- WORKERS (含む 分類マスタ・テンプレート) ----------
+  function chipTypeConfig(type){
+    if(type==='eq') return { list: state.equipmentTypes, cleanup:(id)=>{
+      state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.equipmentTypeId!==id); });
+      state.vendors.forEach(v=>{ v.equipmentTypeIds=(v.equipmentTypeIds||[]).filter(e=>e!==id); });
+      state.templates = state.templates.filter(t=>t.equipmentTypeId!==id);
+    }};
+    if(type==='wt') return { list: state.workTypes, cleanup:(id)=>{
+      state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.workTypeId!==id); });
+      state.vendors.forEach(v=>{ v.workTypeIds=(v.workTypeIds||[]).filter(e=>e!==id); });
+      state.templates = state.templates.filter(t=>t.workTypeId!==id);
+    }};
+    return { list: state.specialWorks, cleanup:(id)=>{
+      state.templates.forEach(t=>{ t.specialWorkIds=(t.specialWorkIds||[]).filter(x=>x!==id); });
+    }};
+  }
+  function renderChipsHtml(type){
+    const { list } = chipTypeConfig(type);
+    if(list.length===0) return '<span class="ss-empty">未登録</span>';
+    return list.map(t=>`<span class="ss-taskchip" data-chip-type="${type}" data-chip-id="${t.id}">${type==='eq'?`<span class="ss-dot" style="background:${eqColorIdx(t.id)}"></span>`:''}${t.name}</span>`).join('');
+  }
+  function renderChipMenuHtml(){
+    if(!chipMenuState) return '';
+    return `<div class="ss-detail-menu" id="chip-menu" style="position:fixed;top:${chipMenuState.y}px;left:${chipMenuState.x}px;">
+      <button type="button" id="chip-menu-edit">編集</button>
+      <hr>
+      <button type="button" class="danger" id="chip-menu-delete">消去</button>
+    </div>`;
+  }
+  function attachChipMenuHandlers(){
+    if(!chipMenuState) return;
+    const { list } = chipTypeConfig(chipMenuState.type);
+    document.getElementById('chip-menu-edit').onclick = async()=>{
+      const item = list.find(x=>x.id===chipMenuState.id);
+      const name = prompt('名称を編集', item ? item.name : '');
+      if(name && name.trim()){ item.name = name.trim(); await saveMaster(); }
+      chipMenuState = null;
+      render();
+    };
+    document.getElementById('chip-menu-delete').onclick = async()=>{
+      if(!confirm('この項目を消去しますか？関連するスキル・テンプレートからも削除されます。')){ return; }
+      const { list, cleanup } = chipTypeConfig(chipMenuState.type);
+      const id = chipMenuState.id;
+      chipTypeConfig(chipMenuState.type).list.splice(list.findIndex(x=>x.id===id), 1);
+      cleanup(id);
+      await saveMaster();
+      chipMenuState = null;
+      render();
+    };
+    setTimeout(()=>{
+      document.addEventListener('click', function closeChipMenu(e){
+        if(!e.target.closest('#chip-menu') && !e.target.closest('[data-chip-id]')){
+          chipMenuState = null; render();
+        }
+      }, {once:true});
+    }, 0);
+  }
+  function attachChipInteractions(containerId, type){
+    const container = document.getElementById(containerId);
+    if(!container) return;
+    container.querySelectorAll('[data-chip-id]').forEach(chip=>{
+      let pressTimer=null, startX=0, startY=0, dragging=false, moved=false;
+      chip.addEventListener('pointerdown', e=>{
+        startX=e.clientX; startY=e.clientY; moved=false; dragging=false;
+        try{ chip.setPointerCapture(e.pointerId); }catch(err){ /* ignore: not all pointer sessions support capture */ }
+        pressTimer = setTimeout(()=>{
+          dragging = true;
+          chip.classList.add('dragging');
+        }, 350);
+      });
+      chip.addEventListener('pointermove', e=>{
+        const dx=e.clientX-startX, dy=e.clientY-startY;
+        if(!dragging && Math.hypot(dx,dy)>10){ clearTimeout(pressTimer); }
+        if(!dragging) return;
+        moved = true;
+        chip.style.pointerEvents='none';
+        const under = document.elementFromPoint(e.clientX, e.clientY);
+        chip.style.pointerEvents='';
+        const targetChip = under && under.closest('[data-chip-id]');
+        if(targetChip && targetChip!==chip && targetChip.parentElement===chip.parentElement && targetChip.dataset.chipType===type){
+          const { list } = chipTypeConfig(type);
+          const fromIdx = list.findIndex(x=>x.id===chip.dataset.chipId);
+          const toIdx = list.findIndex(x=>x.id===targetChip.dataset.chipId);
+          if(fromIdx>-1 && toIdx>-1 && fromIdx!==toIdx){
+            const [movedItem] = list.splice(fromIdx,1);
+            list.splice(toIdx,0,movedItem);
+            if(fromIdx < toIdx) container.insertBefore(chip, targetChip.nextSibling);
+            else container.insertBefore(chip, targetChip);
+          }
+        }
+      });
+      chip.addEventListener('pointerup', async e=>{
+        clearTimeout(pressTimer);
+        if(dragging){
+          chip.classList.remove('dragging');
+          dragging = false;
+          await saveMaster();
+          return;
+        }
+        if(!moved){
+          const rect = chip.getBoundingClientRect();
+          chipMenuState = { type, id: chip.dataset.chipId, x: Math.min(rect.left, window.innerWidth-190), y: rect.bottom+4 };
+          render();
+        }
+      });
+    });
+  }
   function renderWorkers(){
     $main.innerHTML = `
       <div class="ss-card">
@@ -691,46 +800,26 @@
         <div class="ss-card-title">人員一覧 <button class="ss-btn small amber" id="ss-add-worker">＋ 人員を追加</button></div>
         <div id="ss-worker-list"></div>
       </div>
+      ${renderChipMenuHtml()}
     `;
+    if(chipMenuState) attachChipMenuHandlers();
 
-    const $eq = document.getElementById('ss-eq');
-    $eq.innerHTML = state.equipmentTypes.map(t=>`<span class="ss-taskchip"><span class="ss-dot" style="background:${eqColorIdx(t.id)}"></span>${t.name}<button class="ss-x" data-del-eq="${t.id}">×</button></span>`).join('') || '<span class="ss-empty">未登録</span>';
-    $eq.querySelectorAll('[data-del-eq]').forEach(b=>b.onclick=async()=>{
-      const id=b.dataset.delEq;
-      state.equipmentTypes = state.equipmentTypes.filter(t=>t.id!==id);
-      state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.equipmentTypeId!==id); });
-      state.vendors.forEach(v=>{ v.equipmentTypeIds=(v.equipmentTypeIds||[]).filter(e=>e!==id); });
-      state.templates = state.templates.filter(t=>t.equipmentTypeId!==id);
-      await saveMaster(); render();
-    });
+    document.getElementById('ss-eq').innerHTML = renderChipsHtml('eq');
+    attachChipInteractions('ss-eq', 'eq');
     document.getElementById('add-eq').onclick = async()=>{
       const v = document.getElementById('new-eq').value.trim(); if(!v) return;
       state.equipmentTypes.push({id:uid('eq'),name:v}); await saveMaster(); render();
     };
 
-    const $wt = document.getElementById('ss-wt');
-    $wt.innerHTML = state.workTypes.map(t=>`<span class="ss-taskchip">${t.name}<button class="ss-x" data-del-wt="${t.id}">×</button></span>`).join('') || '<span class="ss-empty">未登録</span>';
-    $wt.querySelectorAll('[data-del-wt]').forEach(b=>b.onclick=async()=>{
-      const id=b.dataset.delWt;
-      state.workTypes = state.workTypes.filter(t=>t.id!==id);
-      state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.workTypeId!==id); });
-      state.vendors.forEach(v=>{ v.workTypeIds=(v.workTypeIds||[]).filter(e=>e!==id); });
-      state.templates = state.templates.filter(t=>t.workTypeId!==id);
-      await saveMaster(); render();
-    });
+    document.getElementById('ss-wt').innerHTML = renderChipsHtml('wt');
+    attachChipInteractions('ss-wt', 'wt');
     document.getElementById('add-wt').onclick = async()=>{
       const v = document.getElementById('new-wt').value.trim(); if(!v) return;
       state.workTypes.push({id:uid('wt'),name:v}); await saveMaster(); render();
     };
 
-    const $sw = document.getElementById('ss-sw');
-    $sw.innerHTML = state.specialWorks.map(t=>`<span class="ss-taskchip">${t.name}<button class="ss-x" data-del-sw="${t.id}">×</button></span>`).join('') || '<span class="ss-empty">未登録</span>';
-    $sw.querySelectorAll('[data-del-sw]').forEach(b=>b.onclick=async()=>{
-      const id=b.dataset.delSw;
-      state.specialWorks = state.specialWorks.filter(t=>t.id!==id);
-      state.templates.forEach(t=>{ t.specialWorkIds=(t.specialWorkIds||[]).filter(x=>x!==id); });
-      await saveMaster(); render();
-    });
+    document.getElementById('ss-sw').innerHTML = renderChipsHtml('sw');
+    attachChipInteractions('ss-sw', 'sw');
     document.getElementById('add-sw').onclick = async()=>{
       const v = document.getElementById('new-sw').value.trim(); if(!v) return;
       state.specialWorks.push({id:uid('sw'),name:v}); await saveMaster(); render();
@@ -807,16 +896,76 @@
     if(!$t) return;
     if(state.templates.length===0){ $t.innerHTML = `<div class="ss-empty">テンプレートが未登録です。よく発生する工事から登録していきましょう。</div>`; return; }
     $t.innerHTML = `<div class="ss-table-wrap"><table class="ss-table">
-      <tr><th>工事内容</th><th>標準時間</th><th>標準人数</th><th>特殊作業</th><th></th></tr>
+      <tr><th></th><th>機器種類</th><th>作業内容</th><th>標準時間</th><th>単位</th><th>標準人数</th><th>特殊作業</th><th></th></tr>
       ${state.templates.map(t=>`
-        <tr><td>${templateLabel(t)}</td><td class="mono">${t.durationValue}${t.durationUnit}</td><td class="mono">${t.requiredCount}人</td>
-        <td>${swNames(t.specialWorkIds) || '－'}</td>
-        <td><button class="ss-x" data-del-tp="${t.id}">×</button></td></tr>
+        <tr data-tpl-id="${t.id}">
+          <td class="ss-drag-handle" data-drag-tpl="${t.id}" title="ドラッグで並び替え">⠿</td>
+          <td><select data-tpl="${t.id}" data-field="equipmentTypeId">${state.equipmentTypes.map(eq=>`<option value="${eq.id}" ${t.equipmentTypeId===eq.id?'selected':''}>${eq.name}</option>`).join('')}</select></td>
+          <td><select data-tpl="${t.id}" data-field="workTypeId">${state.workTypes.map(wt=>`<option value="${wt.id}" ${t.workTypeId===wt.id?'selected':''}>${wt.name}</option>`).join('')}</select></td>
+          <td><input type="number" min="0" step="0.5" data-tpl="${t.id}" data-field="durationValue" value="${t.durationValue}" style="width:70px;"></td>
+          <td><select data-tpl="${t.id}" data-field="durationUnit" style="width:75px;"><option value="時間" ${t.durationUnit==='時間'?'selected':''}>時間</option><option value="日" ${t.durationUnit==='日'?'selected':''}>日</option></select></td>
+          <td><input type="number" min="1" data-tpl="${t.id}" data-field="requiredCount" value="${t.requiredCount}" style="width:60px;"></td>
+          <td>${state.specialWorks.map(sw=>`<span class="ss-chiptoggle ${(t.specialWorkIds||[]).includes(sw.id)?'on':''}" data-tpl-sw="${t.id}|${sw.id}">${sw.name}</span>`).join('') || '－'}</td>
+          <td><button class="ss-x" data-del-tp="${t.id}">×</button></td>
+        </tr>
       `).join('')}
     </table></div>`;
     $t.querySelectorAll('[data-del-tp]').forEach(b=>b.onclick=async()=>{
       state.templates = state.templates.filter(t=>t.id!==b.dataset.delTp);
       await saveMaster(); renderTemplateList();
+    });
+    $t.querySelectorAll('[data-tpl]').forEach(inp=>{
+      const evt = inp.tagName==='SELECT' ? 'change' : 'change';
+      inp.addEventListener(evt, async()=>{
+        const tpl = state.templates.find(t=>t.id===inp.dataset.tpl);
+        if(!tpl) return;
+        const field = inp.dataset.field;
+        tpl[field] = (field==='durationValue'||field==='requiredCount') ? (Number(inp.value)||0) : inp.value;
+        await saveMaster(); renderTemplateList();
+      });
+    });
+    $t.querySelectorAll('[data-tpl-sw]').forEach(chip=>chip.onclick=async()=>{
+      const [tplId, swId] = chip.dataset.tplSw.split('|');
+      const tpl = state.templates.find(t=>t.id===tplId);
+      if(!tpl) return;
+      tpl.specialWorkIds = tpl.specialWorkIds||[];
+      if(tpl.specialWorkIds.includes(swId)) tpl.specialWorkIds = tpl.specialWorkIds.filter(x=>x!==swId);
+      else tpl.specialWorkIds.push(swId);
+      await saveMaster(); renderTemplateList();
+    });
+    attachTemplateRowDrag();
+  }
+  function attachTemplateRowDrag(){
+    document.querySelectorAll('[data-drag-tpl]').forEach(handle=>{
+      const row = handle.closest('tr');
+      let pressTimer=null, startX=0, startY=0, dragging=false;
+      handle.addEventListener('pointerdown', e=>{
+        startX=e.clientX; startY=e.clientY; dragging=false;
+        try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+        pressTimer = setTimeout(()=>{ dragging=true; row.style.opacity='0.5'; }, 350);
+      });
+      handle.addEventListener('pointermove', e=>{
+        const dx=e.clientX-startX, dy=e.clientY-startY;
+        if(!dragging && Math.hypot(dx,dy)>10){ clearTimeout(pressTimer); }
+        if(!dragging) return;
+        handle.style.pointerEvents='none';
+        const under = document.elementFromPoint(e.clientX, e.clientY);
+        handle.style.pointerEvents='';
+        const targetRow = under && under.closest('tr[data-tpl-id]');
+        if(targetRow && targetRow!==row){
+          const fromIdx = state.templates.findIndex(t=>t.id===row.dataset.tplId);
+          const toIdx = state.templates.findIndex(t=>t.id===targetRow.dataset.tplId);
+          if(fromIdx>-1 && toIdx>-1 && fromIdx!==toIdx){
+            const [moved] = state.templates.splice(fromIdx,1);
+            state.templates.splice(toIdx,0,moved);
+            if(fromIdx<toIdx) targetRow.after(row); else targetRow.before(row);
+          }
+        }
+      });
+      handle.addEventListener('pointerup', async()=>{
+        clearTimeout(pressTimer);
+        if(dragging){ row.style.opacity=''; dragging=false; await saveMaster(); }
+      });
     });
   }
 
@@ -841,13 +990,16 @@
           ${(w.skills||[]).length===0 ? '<span class="ss-empty" style="padding:0;">スキル未登録</span>' :
             w.skills.map(s=>`<span class="ss-skillchip"><span class="lv">${levelLabel(s.level)}</span>${eqName(s.equipmentTypeId)}／${wtName(s.workTypeId)}<button class="ss-x" data-del-skill="${w.id}|${s.id}" style="padding:0 2px;">×</button></span>`).join('')}
         </div>
-        <button class="ss-btn ghost small" data-add-skill="${w.id}" style="margin-top:6px;">＋ スキルを追加</button>
+        <button class="ss-btn ghost small" data-add-skill="${w.id}" style="margin-top:6px;">＋ スキルを編集</button>
         ${skillFormOpenWorkerId===w.id ? `
-          <div class="ss-add-skill-form">
-            <select id="nf-eq-${w.id}">${state.equipmentTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
-            <select id="nf-wt-${w.id}">${state.workTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
-            <select id="nf-lv-${w.id}"><option value="2" selected>メイン</option><option value="1">補助</option></select>
-            <button class="ss-btn small teal" data-save-skill="${w.id}">保存</button>
+          <div class="ss-add-skill-form" style="flex-direction:column;align-items:stretch;">
+            ${state.templates.length===0 ? '<span class="ss-empty" style="padding:0;">工事内容テンプレートが未登録です。先に「工事内容テンプレート」から登録してください。</span>' : `
+            <div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">メイン</div>
+              <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${skillFor(w,t.equipmentTypeId,t.workTypeId)>=2?'on':''}" data-skill-main="${w.id}|${t.equipmentTypeId}|${t.workTypeId}">${templateLabel(t)}</span>`).join('')}</div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px;">補助</div>
+              <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${skillFor(w,t.equipmentTypeId,t.workTypeId)>=1?'on':''}" data-skill-sub="${w.id}|${t.equipmentTypeId}|${t.workTypeId}">${templateLabel(t)}</span>`).join('')}</div>
+            </div>`}
           </div>
         ` : ''}
       </div>
@@ -878,17 +1030,37 @@
       skillFormOpenWorkerId = (skillFormOpenWorkerId===b.dataset.addSkill)?null:b.dataset.addSkill;
       renderWorkerList();
     });
-    $l.querySelectorAll('[data-save-skill]').forEach(b=>b.onclick=async()=>{
-      const wid = b.dataset.saveSkill;
+    $l.querySelectorAll('[data-skill-main]').forEach(chip=>chip.onclick=()=>{
+      const [wid, eqId, wtId] = chip.dataset.skillMain.split('|');
       const w = worker(wid);
-      const equipmentTypeId = document.getElementById(`nf-eq-${wid}`).value;
-      const workTypeId = document.getElementById(`nf-wt-${wid}`).value;
-      const level = Number(document.getElementById(`nf-lv-${wid}`).value);
       w.skills = w.skills||[];
-      const dup = w.skills.find(s=>s.equipmentTypeId===equipmentTypeId && s.workTypeId===workTypeId);
-      if(dup){ dup.level = level; } else { w.skills.push({id:uid('sk'), equipmentTypeId, workTypeId, level}); }
-      skillFormOpenWorkerId = null;
-      await saveMaster(); renderWorkerList();
+      const entry = w.skills.find(s=>s.equipmentTypeId===eqId && s.workTypeId===wtId);
+      if(entry && entry.level>=2){
+        w.skills = w.skills.filter(s=>s!==entry);
+      } else if(entry){
+        entry.level = 2;
+      } else {
+        w.skills.push({id:uid('sk'), equipmentTypeId:eqId, workTypeId:wtId, level:2});
+      }
+      renderWorkerList();
+      saveMaster();
+    });
+    $l.querySelectorAll('[data-skill-sub]').forEach(chip=>chip.onclick=()=>{
+      const [wid, eqId, wtId] = chip.dataset.skillSub.split('|');
+      const w = worker(wid);
+      w.skills = w.skills||[];
+      const entry = w.skills.find(s=>s.equipmentTypeId===eqId && s.workTypeId===wtId);
+      if(entry && entry.level>=2){
+        toast('メインを解除すると補助も解除されます');
+        return;
+      }
+      if(entry){
+        w.skills = w.skills.filter(s=>s!==entry);
+      } else {
+        w.skills.push({id:uid('sk'), equipmentTypeId:eqId, workTypeId:wtId, level:1});
+      }
+      renderWorkerList();
+      saveMaster();
     });
   }
 
@@ -900,7 +1072,15 @@
         <div class="ss-hint">対応できる「機器種類」と「作業内容」をタップして設定してください。</div>
         <div id="v-list"></div>
       </div>
-      <div class="ss-card"><div class="ss-card-title">外注実績ログ（金額集計）</div><div id="v-log"></div></div>
+      <div class="ss-card">
+        <div class="ss-card-title">外注実績ログ（金額集計）</div>
+        <div class="ss-row">
+          <div class="ss-field"><label>期間（開始）</label><input type="date" id="vlog-start"></div>
+          <div class="ss-field"><label>期間（終了）</label><input type="date" id="vlog-end"></div>
+          <div class="ss-field"><label>外注先</label><select id="vlog-vendor"><option value="">すべて</option>${state.vendors.map(v=>`<option value="${v.name}">${v.name}</option>`).join('')}</select></div>
+        </div>
+        <div id="v-log"></div>
+      </div>
     `;
     renderVendorList();
     document.getElementById('v-add').onclick = async()=>{
@@ -908,13 +1088,31 @@
       state.vendors.push({id:uid('v'), name, equipmentTypeIds:[], workTypeIds:[], contact:'', note:''});
       await saveMaster(); renderVendors();
     };
+    renderVendorLog();
+    ['vlog-start','vlog-end','vlog-vendor'].forEach(id=>{
+      document.getElementById(id).addEventListener('input', renderVendorLog);
+      document.getElementById(id).addEventListener('change', renderVendorLog);
+    });
+  }
+  function renderVendorLog(){
+    const $log = document.getElementById('v-log');
+    if(!$log) return;
+    const startDate = document.getElementById('vlog-start').value;
+    const endDate = document.getElementById('vlog-end').value;
+    const vendorName = document.getElementById('vlog-vendor').value;
     const entries = [];
     state.projects.forEach(p=>{ (p.vendorEntries||[]).forEach(v=> entries.push({...v, projectName:p.name, date:p.start})); });
-    entries.sort((a,b)=> a.date<b.date?1:-1);
-    const $log = document.getElementById('v-log');
-    $log.innerHTML = entries.length===0 ? `<div class="ss-empty">まだ外注実績がありません。</div>` :
-      `<div class="ss-table-wrap"><table class="ss-table"><tr><th>日付</th><th>業者名</th><th>案件</th><th>金額</th><th>備考</th></tr>
-      ${entries.map(e=>`<tr><td class="mono">${e.date}</td><td><b>${e.vendorName}</b></td><td>${e.projectName}</td><td class="mono">${yen(e.amount)}</td><td>${e.note||''}</td></tr>`).join('')}
+    const filtered = entries.filter(e=>{
+      if(startDate && e.date<startDate) return false;
+      if(endDate && e.date>endDate) return false;
+      if(vendorName && e.vendorName!==vendorName) return false;
+      return true;
+    }).sort((a,b)=> a.date<b.date?1:-1);
+    const total = filtered.reduce((s,e)=>s+(e.amount||0),0);
+    $log.innerHTML = filtered.length===0 ? `<div class="ss-empty">該当する外注実績がありません。</div>` :
+      `<div class="ss-hint" style="margin-bottom:6px;">${filtered.length}件・合計 ${yen(total)}</div>
+      <div class="ss-table-wrap"><table class="ss-table"><tr><th>日付</th><th>業者名</th><th>案件</th><th>金額</th><th>備考</th></tr>
+      ${filtered.map(e=>`<tr><td class="mono">${e.date}</td><td><b>${e.vendorName}</b></td><td>${e.projectName}</td><td class="mono">${yen(e.amount)}</td><td>${e.note||''}</td></tr>`).join('')}
       </table></div>`;
   }
   function renderVendorList(){
@@ -941,19 +1139,21 @@
       if(!confirm('削除しますか？')) return;
       state.vendors = state.vendors.filter(v=>v.id!==b.dataset.delV); await saveMaster(); renderVendors();
     });
-    $l.querySelectorAll('[data-vc-eq]').forEach(chip=>chip.onclick=async()=>{
+    $l.querySelectorAll('[data-vc-eq]').forEach(chip=>chip.onclick=()=>{
       const [vid,eid] = chip.dataset.vcEq.split('|');
       const v = state.vendors.find(v=>v.id===vid); v.equipmentTypeIds = v.equipmentTypeIds||[];
       if(v.equipmentTypeIds.includes(eid)) v.equipmentTypeIds = v.equipmentTypeIds.filter(x=>x!==eid);
       else v.equipmentTypeIds.push(eid);
-      await saveMaster(); renderVendorList();
+      renderVendorList();
+      saveMaster();
     });
-    $l.querySelectorAll('[data-vc-wt]').forEach(chip=>chip.onclick=async()=>{
+    $l.querySelectorAll('[data-vc-wt]').forEach(chip=>chip.onclick=()=>{
       const [vid,wid] = chip.dataset.vcWt.split('|');
       const v = state.vendors.find(v=>v.id===vid); v.workTypeIds = v.workTypeIds||[];
       if(v.workTypeIds.includes(wid)) v.workTypeIds = v.workTypeIds.filter(x=>x!==wid);
       else v.workTypeIds.push(wid);
-      await saveMaster(); renderVendorList();
+      renderVendorList();
+      saveMaster();
     });
   }
 
@@ -1240,10 +1440,43 @@
     document.getElementById('daylist-add').onclick = ()=>{ openEventModal('new', dayListModal); };
     document.querySelectorAll('[data-open-event]').forEach(el=>el.onclick=()=>{ openDetail(el.dataset.openEvent); });
     attachSwipeGestures('daylist-overlay', {
-      onSwipeRight: closeDayList,
-      onSwipeLeft: ()=>shiftDayList(1),
       onSwipeDown: closeDayList,
     });
+    attachDayListHorizontalSwipe(document.getElementById('daylist-overlay'));
+  }
+  function attachDayListHorizontalSwipe(overlay){
+    const content = overlay.querySelector('#daylist-swipearea');
+    if(!content) return;
+    let startX=0, startY=0, dragging=false, axis=null;
+    overlay.addEventListener('touchstart', e=>{
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      axis = null; dragging = true;
+      content.style.transition = 'none';
+    }, {passive:true});
+    overlay.addEventListener('touchmove', e=>{
+      if(!dragging) return;
+      const dx = e.touches[0].clientX-startX, dy = e.touches[0].clientY-startY;
+      if(axis===null) axis = Math.abs(dx)>Math.abs(dy) ? 'x' : 'y';
+      if(axis!=='x') return;
+      content.style.transform = `translateX(${dx}px)`;
+    }, {passive:true});
+    overlay.addEventListener('touchend', e=>{
+      if(!dragging) return;
+      dragging = false;
+      if(axis!=='x'){ axis=null; return; }
+      const dx = e.changedTouches[0].clientX - startX;
+      content.style.transition = 'transform 0.2s ease-out';
+      if(dx < -70){
+        content.style.transform = 'translateX(-100%)';
+        setTimeout(()=>shiftDayList(1), 200);
+      } else if(dx > 70){
+        content.style.transform = 'translateX(100%)';
+        setTimeout(()=>shiftDayList(-1), 200);
+      } else {
+        content.style.transform = '';
+      }
+      axis = null;
+    }, {passive:true});
   }
 
   function openDetail(projectId){
@@ -1576,7 +1809,7 @@
     if(mode==='new'){
       eventModal = { mode:'new', data:{
         name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
-        requiredLevel:2, start:dateStr, end:dateStr, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
+        requiredLevel:2, start:dateStr, end:dateStr, allDay:false, startTime:'09:00', endTime:'10:00', url:'', requiredCount:1,
         assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
         calendarId: mainCalendarId(), images:[], color:getLastUsedColor(),
       }, originalImageKeys:[], colorPickerOpen:false };
@@ -2031,7 +2264,7 @@
         <div class="ss-chat-wrap">
           <div class="ss-chat-log" id="chat-log"></div>
           <div class="ss-chat-input-row">
-            <textarea id="chat-input" rows="1" placeholder="例：7/15にスガキヤ港店、厨房入替お願い（Shift+Enterで改行）"></textarea>
+            <textarea id="chat-input" rows="1" placeholder="例：7/15にスガキヤ港店、厨房入替お願い"></textarea>
             <button class="ss-btn amber" id="chat-send">送信</button>
             <button class="ss-btn ghost" id="chat-reset">会話をリセット</button>
           </div>
