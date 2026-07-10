@@ -6,13 +6,13 @@
 <meta name="theme-color" content="#16232F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="現場管理">
+<meta name="apple-mobile-web-app-title" content="LIFE TREE">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy:#16232F;--navy-2:#1F3040;--paper:#F3F5F4;--card:#FFFFFF;--line:#DBE1E2;--ink:#1B2530;--muted:#748089;
-    --amber:#E7A23A;--amber-deep:#B87A1E;--danger:#D2503C;--danger-bg:#FBEAE6;--ok:#3E8E63;--ok-bg:#E7F3EB;
+    --amber:#1FB6C9;--amber-deep:#0E8B9B;--danger:#D2503C;--danger-bg:#FBEAE6;--ok:#3E8E63;--ok-bg:#E7F3EB;
     --violet:#6A4A8A;--violet-bg:#F1E7F5;--teal:#2E7D74;--teal-bg:#E4F1EF;--radius:10px;
   }
   *{box-sizing:border-box;}
@@ -58,7 +58,7 @@
   .ss-row > *{flex:1;min-width:120px;}
   button.ss-btn{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.03em;background:var(--navy);color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:15px;cursor:pointer;}
   button.ss-btn:hover{background:var(--navy-2);}
-  button.ss-btn.amber{background:var(--amber);color:#3A2600;}
+  button.ss-btn.amber{background:var(--amber);color:var(--navy);}
   button.ss-btn.amber:hover{background:var(--amber-deep);color:#fff;}
   button.ss-btn.violet{background:var(--violet);color:#fff;}
   button.ss-btn.violet:hover{background:#553870;}
@@ -87,7 +87,7 @@
   .ss-bar{height:6px;border-radius:3px;background:#EDEFEF;overflow:hidden;width:70px;flex-shrink:0;}
   .ss-bar i{display:block;height:100%;background:var(--ok);}
   .ss-bar i.warn{background:var(--danger);}
-  .ss-shortage{background:#FCF3E4;border:1px solid #EFD8A8;border-radius:8px;padding:10px 13px;font-size:13px;color:#7A5613;margin-top:8px;}
+  .ss-shortage{background:#E3F6F8;border:1px solid #B8E4E9;border-radius:8px;padding:10px 13px;font-size:13px;color:#0E6B78;margin-top:8px;}
   .ss-cal-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
   .ss-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
   .ss-cal-dow{font-size:11px;text-align:center;color:var(--muted);text-transform:uppercase;font-weight:600;padding-bottom:4px;}
@@ -128,6 +128,8 @@
   .ss-cal-legend-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
   .ss-cal-add-btn{width:27px;height:27px;border-radius:50%;border:1px dashed var(--line);background:#fff;color:var(--muted);font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;}
   .ss-cal-add-btn:hover{border-color:var(--amber);color:var(--amber-deep);border-style:solid;}
+  .ss-desktop-nav button{background:none;border:none;color:var(--navy);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;}
+  .ss-desktop-nav button:hover{color:var(--amber-deep);}
   .ss-cal-legend-item{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 6px;font-size:12px;cursor:pointer;background:#fff;}
   .ss-cal-legend-item.off{opacity:.35;}
   .ss-modal-overlay{position:fixed;inset:0;background:rgba(20,30,40,0.55);display:flex;align-items:flex-start;justify-content:center;padding:30px 14px;overflow-y:auto;z-index:200;}
@@ -155,17 +157,15 @@
   .ss-image-thumb .ss-x{position:absolute;top:2px;right:2px;background:rgba(20,30,40,.6);color:#fff;border-radius:50%;width:20px;height:20px;padding:0;line-height:20px;font-size:13px;}
   .ss-image-thumb .ss-x:hover{color:#fff;background:var(--danger);}
   .ss-image-loading{display:flex;align-items:center;justify-content:center;height:100%;font-size:10px;color:var(--muted);text-align:center;}
-  .ss-daylist-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;}
-  .ss-daylist-nav button{background:none;border:none;color:var(--navy);font-size:22px;cursor:pointer;padding:4px 10px;line-height:1;}
-  .ss-daylist-nav button:hover{color:var(--amber-deep);}
   .ss-daylist-swipearea{touch-action:pan-y;}
+  .ss-cal-swipearea{touch-action:pan-y;}
   .ss-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px;}
   .ss-detail-back{background:none;border:none;color:var(--navy);font-size:22px;cursor:pointer;padding:2px 6px;flex-shrink:0;}
   .ss-detail-menu-btn{background:none;border:none;color:var(--navy);font-size:22px;cursor:pointer;padding:2px 10px;flex-shrink:0;position:relative;}
   .ss-detail-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;line-height:1.35;margin-bottom:14px;}
   .ss-detail-datebox{margin-bottom:18px;}
   .ss-detail-date-line{font-size:13px;color:var(--muted);margin-bottom:6px;}
-  .ss-detail-time-row{display:flex;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;}
+  .ss-detail-time-row{display:flex;align-items:center;gap:14px;font-family:'Inter',sans-serif;}
   .ss-detail-time-row b{font-size:28px;}
   .ss-detail-arrow{color:var(--muted);font-size:20px;}
   .ss-detail-row{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px dashed var(--line);}
@@ -179,9 +179,10 @@
   .ss-detail-menu hr{border:none;border-top:1px solid var(--line);margin:0;}
   .ss-image-viewer-overlay{background:rgba(10,14,18,.92);align-items:center;justify-content:center;padding:24px;z-index:300;}
   .ss-image-viewer{position:relative;max-width:100%;max-height:100%;}
-  .ss-image-viewer img{max-width:100%;max-height:85vh;display:block;margin:0 auto;border-radius:8px;object-fit:contain;}
+  .ss-image-viewer img{max-width:100%;max-height:85vh;display:block;margin:0 auto;border-radius:8px;object-fit:contain;touch-action:none;transform-origin:center center;}
   .ss-image-viewer-close{position:absolute;top:-14px;right:-14px;background:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.3);}
   @media(max-width:640px){
+    .ss-desktop-nav{display:none;}
     #ss-root{font-size:15px;}
     label{font-size:12px;}
     .ss-main{padding:14px 10px 60px 10px;}
@@ -201,12 +202,13 @@
     button.ss-btn.small{padding:7px 13px;font-size:12.5px;}
     .ss-daylist-item{padding:14px 2px;gap:12px;}
     .ss-daylist-item .meta,.ss-daylist-item .mono{font-size:12.5px;}
-    .ss-cal-card{border:none;border-radius:0;background:transparent;margin:-14px -10px 0;padding:10px 3px 4px;}
-    .ss-cal-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;}
+    .ss-cal-card{border:none;border-radius:0;background:transparent;margin:-14px -10px 0;padding:10px 3px 4px;display:flex;flex-direction:column;min-height:calc(100dvh - 190px);}
+    .ss-cal-swipearea{flex:1;display:flex;flex-direction:column;}
+    .ss-cal-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;flex:1;grid-auto-rows:1fr;}
     .ss-cal-dow{font-size:10.5px;padding-bottom:4px;}
     .ss-cal-cell{min-height:72px;padding:4px 2px;font-size:12px;border:none;border-radius:0;background:transparent;}
     .ss-cal-cell:hover{border:none;}
-    .ss-cal-cell.today{border:none;background:#FCF3E0;border-radius:6px;}
+    .ss-cal-cell.today{border:none;background:#E3F6F8;border-radius:6px;}
     .ss-cal-cell .d{font-size:12px;margin-bottom:2px;}
     .ss-cal-item{font-size:9.5px;padding:1.5px 4px;margin-bottom:2px;border-radius:3px;line-height:1.3;}
     .ss-cal-toolbar{gap:6px;}
@@ -214,6 +216,7 @@
     .ss-modal{max-width:100%;width:100%;border-radius:14px 14px 0 0;max-height:92vh;overflow-y:auto;padding:16px 14px 20px;}
     #daylist-overlay,#detail-overlay{align-items:stretch;}
     #daylist-overlay .ss-modal,#detail-overlay .ss-modal{height:100vh;max-height:100vh;border-radius:0;}
+    #imgviewer-overlay{align-items:center;justify-content:center;}
     .ss-chat-wrap{height:72vh;}
     .ss-chat-input-row{flex-wrap:wrap;}
     .ss-chat-input-row textarea{flex:1 1 100%;}
@@ -227,7 +230,7 @@
   <div class="ss-header">
     <div class="ss-header-top">
       <div>
-        <h1 class="ss-title">現場<span>スケジュール</span>管理</h1>
+        <h1 class="ss-title">LIFE<span>TREE</span></h1>
       </div>
     </div>
     <div class="ss-tabs" id="ss-tabs"></div>
@@ -282,6 +285,7 @@
   function eqColorIdx(id){ const i=state.equipmentTypes.findIndex(e=>e.id===id); return i<0?'#9AA5AB':COLORS[i%COLORS.length]; }
   function wtName(id){ const w=state.workTypes.find(w=>w.id===id); return w?w.name:''; }
   function worker(id){ return state.workers.find(w=>w.id===id); }
+  function surnameOf(name){ return (name||'').trim().split(/[\s　]+/)[0] || name; }
   function calendar(id){ return state.calendars.find(c=>c.id===id); }
   function calColor(id){ const c=calendar(id); return c?c.color:'#9AA5AB'; }
   function calName(id){ const c=calendar(id); return c?c.name:'未分類'; }
@@ -798,12 +802,14 @@
         </div>
         <div class="ss-cal-toolbar">
           <span id="cal-label" class="disp" style="font-size:20px;"></span>
-          <span>
+          <span class="ss-desktop-nav">
             <button class="ss-btn ghost small" id="cal-prev">◀ 前月</button>
             <button class="ss-btn ghost small" id="cal-next">翌月 ▶</button>
           </span>
         </div>
-        <div class="ss-cal-grid" id="cal-grid"></div>
+        <div class="ss-cal-swipearea" id="cal-swipearea">
+          <div class="ss-cal-grid" id="cal-grid"></div>
+        </div>
       </div>
       ${eventModal ? renderEventModalHtml() : copyModal ? renderCopyModalHtml() : recurringModal ? renderRecurringModalHtml() : detailModal ? renderDetailModalHtml() : (dayListModal ? renderDayListModalHtml() : '')}
       ${imageViewer ? renderImageViewerHtml() : ''}
@@ -828,9 +834,19 @@
       renderCalendar();
     };
     document.getElementById('cal-recurring-btn').onclick = openRecurringModal;
-    document.getElementById('cal-prev').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()-1); renderCalendar(); };
-    document.getElementById('cal-next').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()+1); renderCalendar(); };
+    document.getElementById('cal-prev').onclick = ()=>{ calMonth.setMonth(calMonth.getMonth()-1); renderCalendar(); };
+    document.getElementById('cal-next').onclick = ()=>{ calMonth.setMonth(calMonth.getMonth()+1); renderCalendar(); };
     document.getElementById('cal-label').textContent = `${calMonth.getFullYear()}年 ${calMonth.getMonth()+1}月`;
+    const $swipe = document.getElementById('cal-swipearea');
+    let calTouchStartX = null, calTouchStartY = null;
+    $swipe.addEventListener('touchstart', e=>{ calTouchStartX = e.touches[0].clientX; calTouchStartY = e.touches[0].clientY; }, {passive:true});
+    $swipe.addEventListener('touchend', e=>{
+      if(calTouchStartX===null) return;
+      const dx = e.changedTouches[0].clientX - calTouchStartX;
+      const dy = e.changedTouches[0].clientY - calTouchStartY;
+      if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5){ calMonth.setMonth(calMonth.getMonth() + (dx<0?1:-1)); renderCalendar(); }
+      calTouchStartX = null; calTouchStartY = null;
+    }, {passive:true});
 
     const $g = document.getElementById('cal-grid');
     const dows = ['月','火','水','木','金','土','日'];
@@ -875,13 +891,15 @@
       <div class="ss-modal">
         <div class="ss-modal-head">
           <button class="ss-x" id="daylist-close" style="font-size:20px;">×</button>
+          <span class="ss-desktop-nav">
+            <button type="button" id="daylist-prev">‹</button>
+          </span>
+          <h3 style="margin:0;flex:1;text-align:center;">${dayLabel(dateStr)}</h3>
+          <span class="ss-desktop-nav">
+            <button type="button" id="daylist-next">›</button>
+          </span>
+          <button type="button" class="ss-cal-add-btn" id="daylist-add" title="この日に予定を追加">＋</button>
         </div>
-        <div class="ss-daylist-nav">
-          <button type="button" id="daylist-prev">‹</button>
-          <h3 style="margin:0;">${dayLabel(dateStr)}</h3>
-          <button type="button" id="daylist-next">›</button>
-        </div>
-        <button class="ss-btn amber small" id="daylist-add" style="margin:10px 0;">＋ この日に予定を追加</button>
         <div id="daylist-swipearea" class="ss-daylist-swipearea">
         ${items.length===0 ? `<div class="ss-empty">この日の予定はありません。</div>` :
           items.map(p=>`
@@ -1230,9 +1248,13 @@
             <div class="ss-field"><label>開始日</label><input type="date" id="ev-start" value="${d.start}"></div>
             <div class="ss-field"><label>終了日</label><input type="date" id="ev-end" value="${d.end}"></div>
           </div>
-          <div class="ss-row">
-            <div class="ss-field"><label>開始時刻（24時間表記・任意）</label><input type="time" id="ev-start-time" value="${d.startTime||''}" step="300"></div>
-            <div class="ss-field"><label>終了時刻（24時間表記・任意）</label><input type="time" id="ev-end-time" value="${d.endTime||''}" step="300"></div>
+          <div class="ss-toggle-row">
+            <span>終日</span>
+            <div class="ss-switch ${d.allDay?'on':''}" id="ev-allday-toggle"><div class="knob"></div></div>
+          </div>
+          <div class="ss-row" id="ev-time-row" style="${d.allDay?'display:none;':''}">
+            <div class="ss-field"><label>開始時刻（24時間表記）</label><input type="time" id="ev-start-time" value="${d.startTime||''}" step="300"></div>
+            <div class="ss-field"><label>終了時刻（24時間表記）</label><input type="time" id="ev-end-time" value="${d.endTime||''}" step="300"></div>
           </div>
           <div class="ss-field"><label>場所</label><input type="text" id="ev-address" value="${d.address||''}" placeholder="住所・現場名など"></div>
           <div class="ss-field"><label>URL（図面・Googleドライブなど）</label>
@@ -1245,7 +1267,7 @@
 
         <div class="ss-modal-section">
           <div class="ss-subhead" style="margin-top:0;">参加者（社員）</div>
-          <div id="ev-participants">${state.workers.map(w=>`<span class="ss-chiptoggle ${((d.assignedWorkerIds||[]).includes(w.id))?'on':''}" data-ev-p="${w.id}">${w.name}</span>`).join('') || '<span class="ss-empty">人員未登録</span>'}</div>
+          <div id="ev-participants">${state.workers.map(w=>`<span class="ss-chiptoggle ${((d.assignedWorkerIds||[]).includes(w.id))?'on':''}" data-ev-p="${w.id}" title="${w.name}">${surnameOf(w.name)}</span>`).join('') || '<span class="ss-empty">人員未登録</span>'}</div>
           ${d.equipmentTypeId && d.workTypeId ? `<button class="ss-btn ghost small" id="ev-auto-assign" style="margin-top:8px;">スキルから自動提案</button>` : ''}
         </div>
 
@@ -1350,13 +1372,38 @@
     <div class="ss-modal-overlay ss-image-viewer-overlay" id="imgviewer-overlay">
       <div class="ss-image-viewer">
         <button type="button" class="ss-image-viewer-close" id="imgviewer-close">×</button>
-        <img src="${imageViewer}">
+        <img src="${imageViewer}" id="imgviewer-img">
       </div>
     </div>`;
   }
   function attachImageViewerHandlers(){
     document.getElementById('imgviewer-overlay').addEventListener('click', e=>{ if(e.target.id==='imgviewer-overlay') closeImageViewer(); });
     document.getElementById('imgviewer-close').onclick = closeImageViewer;
+    attachPinchZoom(document.getElementById('imgviewer-img'));
+  }
+  function attachPinchZoom(img){
+    let scale = 1, startDist = 0, startScale = 1, lastTap = 0;
+    const dist = (t0,t1)=>Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY);
+    img.addEventListener('touchstart', e=>{
+      if(e.touches.length===2){ startDist = dist(e.touches[0], e.touches[1]); startScale = scale; }
+    }, {passive:true});
+    img.addEventListener('touchmove', e=>{
+      if(e.touches.length===2 && startDist>0){
+        e.preventDefault();
+        scale = Math.min(4, Math.max(1, startScale * (dist(e.touches[0], e.touches[1]) / startDist)));
+        img.style.transform = scale>1 ? `scale(${scale})` : '';
+      }
+    }, {passive:false});
+    img.addEventListener('touchend', e=>{
+      if(e.touches.length===0){
+        const now = Date.now();
+        if(scale<=1.02 && now-lastTap<300){
+          scale = 2.2;
+          img.style.transform = `scale(${scale})`;
+        }
+        lastTap = now;
+      }
+    }, {passive:true});
   }
 
   function syncEvFormToData(){
@@ -1378,6 +1425,17 @@
     d.budgetAmount = Number(document.getElementById('ev-budget').value)||0;
     d.actualAmount = Number(document.getElementById('ev-actual').value)||0;
   }
+  function rerenderEventModal(){
+    const overlay = document.getElementById('ev-overlay');
+    const modal = overlay ? overlay.querySelector('.ss-modal') : null;
+    const overlayScroll = overlay ? overlay.scrollTop : 0;
+    const modalScroll = modal ? modal.scrollTop : 0;
+    renderCalendar();
+    const overlay2 = document.getElementById('ev-overlay');
+    const modal2 = overlay2 ? overlay2.querySelector('.ss-modal') : null;
+    if(overlay2) overlay2.scrollTop = overlayScroll;
+    if(modal2) modal2.scrollTop = modalScroll;
+  }
 
   function attachEventModalHandlers(){
     const d = eventModal.data;
@@ -1397,15 +1455,21 @@
     document.getElementById('ev-overlay').addEventListener('click', (e)=>{ if(e.target.id==='ev-overlay') closeEventModal(); });
     document.getElementById('ev-close').onclick = closeEventModal;
     document.getElementById('ev-cancel').onclick = closeEventModal;
-    document.getElementById('ev-color-swatches').querySelector('[data-color-auto]').onclick = ()=>{ syncEvFormToData(); d.color = null; renderCalendar(); };
-    document.querySelectorAll('#ev-color-swatches [data-color]').forEach(sw=>sw.onclick=()=>{ syncEvFormToData(); d.color = sw.dataset.color; renderCalendar(); });
+    document.getElementById('ev-allday-toggle').onclick = ()=>{
+      syncEvFormToData();
+      d.allDay = !d.allDay;
+      if(d.allDay){ d.startTime=''; d.endTime=''; }
+      rerenderEventModal();
+    };
+    document.getElementById('ev-color-swatches').querySelector('[data-color-auto]').onclick = ()=>{ syncEvFormToData(); d.color = null; rerenderEventModal(); };
+    document.querySelectorAll('#ev-color-swatches [data-color]').forEach(sw=>sw.onclick=()=>{ syncEvFormToData(); d.color = sw.dataset.color; rerenderEventModal(); });
     document.querySelectorAll('#ev-participants [data-ev-p]').forEach(chip=>chip.onclick=()=>{
       syncEvFormToData();
       const wid = chip.dataset.evP;
       d.assignedWorkerIds = d.assignedWorkerIds||[];
       if(d.assignedWorkerIds.includes(wid)) d.assignedWorkerIds = d.assignedWorkerIds.filter(x=>x!==wid);
       else d.assignedWorkerIds.push(wid);
-      renderCalendar();
+      rerenderEventModal();
     });
     const autoBtn = document.getElementById('ev-auto-assign');
     if(autoBtn) autoBtn.onclick = ()=>{
@@ -1416,7 +1480,7 @@
       d.assignedWorkerIds = result.picked.map(c=>c.worker.id);
       if(result.shortage>0) toast(`⚠ ${result.shortage}名不足しています。外注を検討してください`);
       else toast('スキル・残業状況から人員を提案しました');
-      renderCalendar();
+      rerenderEventModal();
     };
     document.getElementById('ev-ve-add').onclick = ()=>{
       const vname = document.getElementById('ev-ve-name').value.trim();
@@ -1425,12 +1489,12 @@
       syncEvFormToData();
       d.vendorEntries = d.vendorEntries||[];
       d.vendorEntries.push({vendorName:vname, amount:vamount, note:''});
-      renderCalendar();
+      rerenderEventModal();
     };
     document.querySelectorAll('[data-del-ve]').forEach(b=>b.onclick=()=>{
       syncEvFormToData();
       d.vendorEntries.splice(Number(b.dataset.delVe),1);
-      renderCalendar();
+      rerenderEventModal();
     });
     document.getElementById('ev-delete') && (document.getElementById('ev-delete').onclick = async()=>{
       if(!confirm('この予定を削除しますか？')) return;
@@ -1469,7 +1533,7 @@
         for(const key of removedKeys){ await apiDeleteKey(key); }
         const payload = {
           name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||3,
-          start, end, allDay: !(startTime||endTime), startTime, endTime, url, requiredCount, assignedWorkerIds: d.assignedWorkerIds||[], outsourceCount: 0,
+          start, end, allDay: d.allDay, startTime, endTime, url, requiredCount, assignedWorkerIds: d.assignedWorkerIds||[], outsourceCount: 0,
           vendorEntries: d.vendorEntries||[], budgetAmount, actualAmount, calendarId, images, color: d.color||null,
         };
         if(eventModal.mode==='new'){
