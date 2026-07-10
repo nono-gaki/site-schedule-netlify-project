@@ -139,6 +139,15 @@
   .ss-modal-section{padding:10px 0;border-bottom:1px dashed var(--line);}
   .ss-modal-section:last-child{border-bottom:none;}
   .ss-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+  .ss-title-input{border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;padding:6px 0;color:var(--ink);width:100%;border-bottom:2px solid transparent;}
+  .ss-title-input:focus{outline:none;border-bottom-color:var(--amber);}
+  .ss-color-summary{display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;}
+  .ss-color-summary .ic{font-size:16px;}
+  .ss-color-summary .ss-dot{width:14px;height:14px;}
+  .ss-color-summary .chev{margin-left:auto;color:var(--muted);font-size:16px;}
+  .ss-datetime-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .ss-datetime-row label{width:40px;flex-shrink:0;margin-bottom:0;}
+  .ss-datetime-row input{flex:1;min-width:0;}
   .ss-switch{width:40px;height:22px;border-radius:20px;background:#DADFE1;position:relative;cursor:pointer;flex-shrink:0;}
   .ss-switch.on{background:var(--ok);}
   .ss-switch .knob{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .15s;}
@@ -1191,10 +1200,10 @@
         requiredLevel:3, start:dateStr, end:dateStr, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
         assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
         calendarId: mainCalendarId(), images:[], color:null,
-      }, originalImageKeys:[] };
+      }, originalImageKeys:[], colorPickerOpen:false };
     } else {
       const p = state.projects.find(p=>p.id===projectId);
-      eventModal = { mode:'edit', id:projectId, data: JSON.parse(JSON.stringify(p)), originalImageKeys: (p.images||[]).map(im=>im.key) };
+      eventModal = { mode:'edit', id:projectId, data: JSON.parse(JSON.stringify(p)), originalImageKeys: (p.images||[]).map(im=>im.key), colorPickerOpen:false };
       eventModal.data.images = eventModal.data.images || [];
     }
     renderCalendar();
@@ -1230,38 +1239,47 @@
         </div>
 
         <div class="ss-modal-section">
-          <div class="ss-field"><label>タイトル</label><input type="text" id="ev-name" value="${d.name||''}" placeholder="例：スガキヤ港店 厨房入替"></div>
-          <div class="ss-field"><label>カレンダー</label>
+          <input type="text" id="ev-name" value="${d.name||''}" placeholder="タイトルを入力" class="ss-title-input">
+          <div class="ss-field" style="margin-top:12px;"><label>カレンダー</label>
             <select id="ev-calendar">${state.calendars.map(c=>`<option value="${c.id}" ${d.calendarId===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
           </div>
           <div class="ss-field">
-            <label>色</label>
-            <div id="ev-color-swatches" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
+            <div class="ss-color-summary" id="ev-color-summary">
+              <span class="ic">🏷️</span>
+              <span class="ss-dot" style="background:${d.color || calColor(d.calendarId)};"></span>
+              <span>${d.color ? (EVENT_COLORS.find(c=>c.hex===d.color)||{}).name || d.color : 'カレンダーの色'}</span>
+              <span class="chev">${eventModal.colorPickerOpen?'︿':'›'}</span>
+            </div>
+            ${eventModal.colorPickerOpen ? `
+            <div id="ev-color-swatches" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px;">
               <button type="button" class="ss-chiptoggle ${!d.color?'on':''}" data-color-auto="1" style="margin-right:4px;">カレンダーの色</button>
               ${EVENT_COLORS.map(c=>`<span class="ss-color-swatch ${d.color===c.hex?'on':''}" data-color="${c.hex}" style="background:${c.hex};" title="${c.name}"></span>`).join('')}
-            </div>
+            </div>` : ''}
           </div>
         </div>
 
         <div class="ss-modal-section">
-          <div class="ss-row">
-            <div class="ss-field"><label>開始日</label><input type="date" id="ev-start" value="${d.start}"></div>
-            <div class="ss-field"><label>終了日</label><input type="date" id="ev-end" value="${d.end}"></div>
-          </div>
           <div class="ss-toggle-row">
-            <span>終日</span>
+            <span class="ic">🕐</span><span style="flex:1;margin-left:8px;">終日</span>
             <div class="ss-switch ${d.allDay?'on':''}" id="ev-allday-toggle"><div class="knob"></div></div>
           </div>
-          <div class="ss-row" id="ev-time-row" style="${d.allDay?'display:none;':''}">
-            <div class="ss-field"><label>開始時刻（24時間表記）</label><input type="time" id="ev-start-time" value="${d.startTime||''}" step="300"></div>
-            <div class="ss-field"><label>終了時刻（24時間表記）</label><input type="time" id="ev-end-time" value="${d.endTime||''}" step="300"></div>
+          <div class="ss-datetime-row">
+            <label>開始</label>
+            <input type="date" id="ev-start" value="${d.start}">
+            <input type="time" id="ev-start-time" value="${d.startTime||''}" step="300" style="${d.allDay?'display:none;':''}">
+          </div>
+          <div class="ss-datetime-row">
+            <label>終了</label>
+            <input type="date" id="ev-end" value="${d.end}">
+            <input type="time" id="ev-end-time" value="${d.endTime||''}" step="300" style="${d.allDay?'display:none;':''}">
           </div>
           <div class="ss-field"><label>場所</label><input type="text" id="ev-address" value="${d.address||''}" placeholder="住所・現場名など"></div>
           <div class="ss-field"><label>URL（図面・Googleドライブなど）</label>
             <div class="ss-row" style="align-items:center;">
               <input type="text" id="ev-url" value="${d.url||''}" placeholder="https://drive.google.com/...">
-              ${d.url ? `<a class="ss-link-btn" href="${d.url}" target="_blank" rel="noopener" style="flex:0 0 auto;">🔗 開く</a>` : ''}
+              ${d.url ? `<button type="button" class="ss-x" id="ev-url-clear" style="flex:0 0 auto;" title="クリア">×</button>` : ''}
             </div>
+            ${d.url ? `<a class="ss-link-btn" href="${d.url}" target="_blank" rel="noopener" style="margin-top:6px;display:inline-flex;">🔗 開く</a>` : ''}
           </div>
         </div>
 
@@ -1283,7 +1301,13 @@
         </div>
 
         <div class="ss-modal-section">
-          <div class="ss-field"><label>メモ</label><textarea id="ev-memo" placeholder="施工内容、撤去品、注意点など自由に">${d.workDetail||''}</textarea></div>
+          <div class="ss-field">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <label style="margin-bottom:4px;">メモ</label>
+              ${d.workDetail ? `<button type="button" class="ss-x" id="ev-memo-clear" title="クリア">×</button>` : ''}
+            </div>
+            <textarea id="ev-memo" placeholder="施工内容、撤去品、注意点など自由に">${d.workDetail||''}</textarea>
+          </div>
         </div>
 
         <div class="ss-modal-section">
@@ -1461,8 +1485,16 @@
       if(d.allDay){ d.startTime=''; d.endTime=''; }
       rerenderEventModal();
     };
-    document.getElementById('ev-color-swatches').querySelector('[data-color-auto]').onclick = ()=>{ syncEvFormToData(); d.color = null; rerenderEventModal(); };
-    document.querySelectorAll('#ev-color-swatches [data-color]').forEach(sw=>sw.onclick=()=>{ syncEvFormToData(); d.color = sw.dataset.color; rerenderEventModal(); });
+    document.getElementById('ev-color-summary').onclick = ()=>{ syncEvFormToData(); eventModal.colorPickerOpen = !eventModal.colorPickerOpen; rerenderEventModal(); };
+    const colorSwatches = document.getElementById('ev-color-swatches');
+    if(colorSwatches){
+      colorSwatches.querySelector('[data-color-auto]').onclick = ()=>{ syncEvFormToData(); d.color = null; eventModal.colorPickerOpen = false; rerenderEventModal(); };
+      colorSwatches.querySelectorAll('[data-color]').forEach(sw=>sw.onclick=()=>{ syncEvFormToData(); d.color = sw.dataset.color; eventModal.colorPickerOpen = false; rerenderEventModal(); });
+    }
+    const urlClear = document.getElementById('ev-url-clear');
+    if(urlClear) urlClear.onclick = ()=>{ syncEvFormToData(); d.url=''; rerenderEventModal(); };
+    const memoClear = document.getElementById('ev-memo-clear');
+    if(memoClear) memoClear.onclick = ()=>{ syncEvFormToData(); d.workDetail=''; rerenderEventModal(); };
     document.querySelectorAll('#ev-participants [data-ev-p]').forEach(chip=>chip.onclick=()=>{
       syncEvFormToData();
       const wid = chip.dataset.evP;
