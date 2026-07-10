@@ -34,6 +34,12 @@
   .ss-tab{padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14.5px;color:#C3CDD3;background:transparent;border:none;cursor:pointer;border-radius:8px 8px 0 0;white-space:nowrap;letter-spacing:.03em;}
   .ss-tab.active{background:var(--paper);color:var(--navy);}
   .ss-tab:not(.active):hover{background:rgba(255,255,255,0.08);color:#fff;}
+  @media(min-width:641px){
+    .ss-header{display:flex;align-items:center;gap:28px;padding:14px 24px;}
+    .ss-header-top{margin-bottom:0;flex:0 0 auto;}
+    .ss-tabs{flex:1;}
+    .ss-tab{padding:8px 16px;}
+  }
   .ss-main{padding:22px 24px 60px 24px;}
   .ss-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;}
   .ss-card-title{font-size:13px;text-transform:uppercase;color:var(--muted);font-weight:600;letter-spacing:.08em;margin:0 0 14px 0;padding-bottom:8px;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
@@ -92,8 +98,8 @@
   .ss-cal-layout{display:flex;gap:16px;align-items:flex-start;}
   .ss-cal-main{flex:1;min-width:0;}
   .ss-cal-side{width:300px;flex-shrink:0;max-height:80vh;overflow-y:auto;}
-  .ss-cal-side-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-  .ss-cal-side-head h3{margin:0;font-size:17px;}
+  .ss-cal-side-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .ss-cal-side-head h3{margin:0;font-size:17px;flex:1;}
   .ss-cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:2px;}
   .ss-cal-swipearea{overflow:hidden;}
   .ss-cal-track{display:flex;width:300%;transform:translateX(-33.3333%);}
@@ -106,6 +112,8 @@
   .ss-cal-cell.today{border-color:var(--amber);border-width:2px;}
   .ss-cal-cell.other-month{opacity:.4;}
   .ss-cal-cell .d{font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:3px;}
+  .ss-cal-cell .d.sat{color:#2F6FDE;}
+  .ss-cal-cell .d.sun{color:#D2503C;}
   .ss-cal-item{border-radius:4px;padding:1px 5px;margin-bottom:2px;font-size:10.5px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ss-cal-more{font-size:10.5px;color:var(--muted);font-weight:600;padding:0 4px;}
   .ss-taskchip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:3px 10px 3px 6px;font-size:12px;margin:2px;}
@@ -290,6 +298,7 @@
   let copyModal = null; // {projectId, date, calendarId}
   let imageViewer = null; // dataUrl
   let recurringModal = null; // {title, calendarId, weekdays:{0..6:bool}, includeHolidays, startDate, endDate}
+  let searchModal = null; // {query, startDate, endDate}
   const imageCache = {}; // key -> dataUrl
   let skillFormOpenWorkerId = null;
   let outsourceFormOpenId = null; // reused inside modal context via eventModal
@@ -315,6 +324,13 @@
   function calColor(id){ const c=calendar(id); return c?c.color:'#9AA5AB'; }
   function calName(id){ const c=calendar(id); return c?c.name:'未分類'; }
   function eventColor(p){ return p.color || calColor(p.calendarId); }
+  function getLastUsedColor(){
+    try{
+      const stored = localStorage.getItem('ss-last-color');
+      if(stored && EVENT_COLORS.some(c=>c.hex===stored)) return stored;
+    }catch(e){}
+    return EVENT_COLORS[0].hex;
+  }
   function getDayItems(dateStr){
     return state.projects.filter(p => p.start<=dateStr && dateStr<=p.end && calVisible[p.calendarId]!==false)
       .sort((a,b)=>{
@@ -839,7 +855,9 @@
       const items = getDayItems(dateStr);
       const shown = items.slice(0, MAX_CHIPS_PER_CELL);
       const overflow = items.length - shown.length;
-      html += `<div class="ss-cal-cell ${dateStr===today?'today':''} ${inMonth?'':'other-month'}" data-day="${dateStr}"><div class="d">${cellDate.getDate()}</div>
+      const dow = cellDate.getDay();
+      const dNumClass = (dow===0 || isJapaneseHoliday(dateStr)) ? 'sun' : dow===6 ? 'sat' : '';
+      html += `<div class="ss-cal-cell ${dateStr===today?'today':''} ${inMonth?'':'other-month'}" data-day="${dateStr}"><div class="d ${dNumClass}">${cellDate.getDate()}</div>
         ${shown.map(p=>`<div class="ss-cal-item" style="background:${eventColor(p)}" title="${p.name}">${p.name}${p.url?' 🔗':''}</div>`).join('')}
         ${overflow>0 ? `<div class="ss-cal-more">+${overflow}</div>` : ''}
       </div>`;
@@ -847,11 +865,11 @@
     return html;
   }
   function renderCalSideContent(){
-    if(!dayListModal) return `<div class="ss-empty">日付を選択すると、その日の予定が表示されます。</div>`;
     const dateStr = dayListModal;
     const items = getDayItems(dateStr);
     return `
       <div class="ss-cal-side-head">
+        <button class="ss-x" id="side-daylist-close" style="font-size:20px;" title="閉じる">×</button>
         <h3>${dayLabel(dateStr)}</h3>
         <button type="button" class="ss-cal-add-btn" id="side-daylist-add" title="この日に予定を追加">＋</button>
       </div>
@@ -879,6 +897,7 @@
                 <div class="ss-cal-legend" id="cal-legend"></div>
                 <button type="button" class="ss-cal-add-btn" id="cal-add-calendar" title="カレンダーを追加">＋</button>
                 <button type="button" class="ss-cal-add-btn" id="cal-recurring-btn" title="休みを一括登録">🔁</button>
+                <button type="button" class="ss-cal-add-btn" id="cal-search-btn" title="予定を検索">🔍</button>
               </div>
             </div>
             <div class="ss-cal-toolbar">
@@ -898,9 +917,9 @@
             </div>
           </div>
         </div>
-        <div class="ss-card ss-cal-side" id="cal-side">${renderCalSideContent()}</div>
+        ${dayListModal ? `<div class="ss-card ss-cal-side" id="cal-side">${renderCalSideContent()}</div>` : ''}
       </div>
-      ${eventModal ? renderEventModalHtml() : copyModal ? renderCopyModalHtml() : recurringModal ? renderRecurringModalHtml() : detailModal ? renderDetailModalHtml() : (dayListModal && isMobileViewport() ? renderDayListModalHtml() : '')}
+      ${eventModal ? renderEventModalHtml() : copyModal ? renderCopyModalHtml() : recurringModal ? renderRecurringModalHtml() : searchModal ? renderSearchModalHtml() : detailModal ? renderDetailModalHtml() : (dayListModal && isMobileViewport() ? renderDayListModalHtml() : '')}
       ${imageViewer ? renderImageViewerHtml() : ''}
     `;
     const $legend = document.getElementById('cal-legend');
@@ -923,6 +942,7 @@
       renderCalendar();
     };
     document.getElementById('cal-recurring-btn').onclick = openRecurringModal;
+    document.getElementById('cal-search-btn').onclick = openSearchModal;
     document.getElementById('cal-prev').onclick = ()=>{ calMonth.setMonth(calMonth.getMonth()-1); renderCalendar(); };
     document.getElementById('cal-next').onclick = ()=>{ calMonth.setMonth(calMonth.getMonth()+1); renderCalendar(); };
     document.getElementById('cal-label').textContent = `${calMonth.getFullYear()}年 ${calMonth.getMonth()+1}月`;
@@ -971,6 +991,7 @@
     if(eventModal) attachEventModalHandlers();
     else if(copyModal) attachCopyHandlers();
     else if(recurringModal) attachRecurringHandlers();
+    else if(searchModal) attachSearchHandlers();
     else if(detailModal) attachDetailHandlers();
     else if(dayListModal && isMobileViewport()) attachDayListHandlers();
     if(imageViewer) attachImageViewerHandlers();
@@ -979,6 +1000,8 @@
   function attachCalSideHandlers(){
     const sideAdd = document.getElementById('side-daylist-add');
     if(sideAdd) sideAdd.onclick = ()=>openEventModal('new', dayListModal);
+    const sideClose = document.getElementById('side-daylist-close');
+    if(sideClose) sideClose.onclick = closeDayList;
     document.querySelectorAll('[data-side-open-event]').forEach(el=>el.onclick=()=>openDetail(el.dataset.sideOpenEvent));
   }
 
@@ -1321,18 +1344,90 @@
     };
   }
 
+  function openSearchModal(){ searchModal = { query:'', startDate:'', endDate:'' }; renderCalendar(); }
+  function closeSearchModal(){ searchModal = null; renderCalendar(); }
+  function renderSearchModalHtml(){
+    return `
+    <div class="ss-modal-overlay" id="search-overlay">
+      <div class="ss-modal">
+        <div class="ss-modal-head">
+          <h3>予定を検索</h3>
+          <button class="ss-x" id="search-close" style="font-size:20px;">×</button>
+        </div>
+        <div class="ss-field"><label>キーワード</label><input type="text" id="search-query" value="${searchModal.query}" placeholder="現場名・メモ・住所など"></div>
+        <div class="ss-row">
+          <div class="ss-field"><label>期間（開始）</label><input type="date" id="search-start" value="${searchModal.startDate}"></div>
+          <div class="ss-field"><label>期間（終了）</label><input type="date" id="search-end" value="${searchModal.endDate}"></div>
+        </div>
+        <div id="search-results"></div>
+      </div>
+    </div>`;
+  }
+  function renderSearchResults(){
+    const $results = document.getElementById('search-results');
+    if(!$results || !searchModal) return;
+    const q = searchModal.query.trim().toLowerCase();
+    const hasFilter = q || searchModal.startDate || searchModal.endDate;
+    if(!hasFilter){
+      $results.innerHTML = `<div class="ss-empty">キーワードまたは期間を入力してください。</div>`;
+      return;
+    }
+    const results = state.projects.filter(p=>{
+      if(searchModal.startDate && p.end < searchModal.startDate) return false;
+      if(searchModal.endDate && p.start > searchModal.endDate) return false;
+      if(!q) return true;
+      const hay = [p.name, p.workDetail, p.address, comboLabel(p)].join(' ').toLowerCase();
+      return hay.includes(q);
+    }).sort((a,b)=> a.start<b.start ? -1 : a.start>b.start ? 1 : 0);
+    $results.innerHTML = results.length===0 ? `<div class="ss-empty">該当する予定がありません。</div>` :
+      results.map(p=>`
+        <div class="ss-daylist-item" data-search-open="${p.id}">
+          <span class="ss-dot" style="background:${eventColor(p)}"></span>
+          <div style="flex:1;">
+            <b>${p.name}</b>
+            <div class="mono meta" style="color:var(--muted);font-size:11px;">${dayLabel(p.start)}${p.start!==p.end?(' 〜 '+dayLabel(p.end)):''}${p.startTime?(' '+p.startTime):''}</div>
+          </div>
+        </div>
+      `).join('');
+    document.querySelectorAll('[data-search-open]').forEach(el=>el.onclick=()=>{
+      const id = el.dataset.searchOpen;
+      const p = state.projects.find(pp=>pp.id===id);
+      searchModal = null;
+      if(p) calMonth = new Date(p.start+'T00:00:00');
+      openDetail(id);
+    });
+  }
+  function attachSearchHandlers(){
+    document.getElementById('search-overlay').addEventListener('click', e=>{ if(e.target.id==='search-overlay') closeSearchModal(); });
+    document.getElementById('search-close').onclick = closeSearchModal;
+    document.getElementById('search-query').addEventListener('input', ()=>{
+      searchModal.query = document.getElementById('search-query').value;
+      renderSearchResults();
+    });
+    document.getElementById('search-start').addEventListener('change', ()=>{
+      searchModal.startDate = document.getElementById('search-start').value;
+      renderSearchResults();
+    });
+    document.getElementById('search-end').addEventListener('change', ()=>{
+      searchModal.endDate = document.getElementById('search-end').value;
+      renderSearchResults();
+    });
+    renderSearchResults();
+  }
+
   function openEventModal(mode, dateStr, projectId){
     dayListModal = null;
     detailModal = null;
     detailMenuOpen = false;
     copyModal = null;
     recurringModal = null;
+    searchModal = null;
     if(mode==='new'){
       eventModal = { mode:'new', data:{
         name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
         requiredLevel:3, start:dateStr, end:dateStr, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
         assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
-        calendarId: mainCalendarId(), images:[], color:null,
+        calendarId: mainCalendarId(), images:[], color:getLastUsedColor(),
       }, originalImageKeys:[], colorPickerOpen:false };
     } else {
       const p = state.projects.find(p=>p.id===projectId);
@@ -1380,12 +1475,11 @@
             <div class="ss-color-summary" id="ev-color-summary">
               <span class="ic">🏷️</span>
               <span class="ss-dot" style="background:${d.color || calColor(d.calendarId)};"></span>
-              <span>${d.color ? (EVENT_COLORS.find(c=>c.hex===d.color)||{}).name || d.color : 'カレンダーの色'}</span>
+              <span>${d.color ? (EVENT_COLORS.find(c=>c.hex===d.color)||{}).name || d.color : '色を選択'}</span>
               <span class="chev">${eventModal.colorPickerOpen?'︿':'›'}</span>
             </div>
             ${eventModal.colorPickerOpen ? `
             <div id="ev-color-swatches" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px;">
-              <button type="button" class="ss-chiptoggle ${!d.color?'on':''}" data-color-auto="1" style="margin-right:4px;">カレンダーの色</button>
               ${EVENT_COLORS.map(c=>`<span class="ss-color-swatch ${d.color===c.hex?'on':''}" data-color="${c.hex}" style="background:${c.hex};" title="${c.name}"></span>`).join('')}
             </div>` : ''}
           </div>
@@ -1635,6 +1729,23 @@
     document.getElementById('ev-overlay').addEventListener('click', (e)=>{ if(e.target.id==='ev-overlay') closeEventModal(); });
     document.getElementById('ev-close').onclick = closeEventModal;
     document.getElementById('ev-cancel').onclick = closeEventModal;
+    document.getElementById('ev-start-time').addEventListener('change', ()=>{
+      const $endTime = document.getElementById('ev-end-time');
+      if($endTime.value) return;
+      const startVal = document.getElementById('ev-start-time').value;
+      if(!startVal) return;
+      const [h,mi] = startVal.split(':').map(Number);
+      let total = h*60 + mi + 60;
+      let rollover = 0;
+      if(total >= 1440){ total -= 1440; rollover = 1; }
+      const endH = String(Math.floor(total/60)).padStart(2,'0');
+      const endM = String(total%60).padStart(2,'0');
+      $endTime.value = `${endH}:${endM}`;
+      if(rollover){
+        const $endDate = document.getElementById('ev-end');
+        if($endDate.value === document.getElementById('ev-start').value) $endDate.value = addDays($endDate.value, 1);
+      }
+    });
     document.getElementById('ev-allday-toggle').onclick = ()=>{
       syncEvFormToData();
       d.allDay = !d.allDay;
@@ -1644,8 +1755,13 @@
     document.getElementById('ev-color-summary').onclick = ()=>{ syncEvFormToData(); eventModal.colorPickerOpen = !eventModal.colorPickerOpen; rerenderEventModal(); };
     const colorSwatches = document.getElementById('ev-color-swatches');
     if(colorSwatches){
-      colorSwatches.querySelector('[data-color-auto]').onclick = ()=>{ syncEvFormToData(); d.color = null; eventModal.colorPickerOpen = false; rerenderEventModal(); };
-      colorSwatches.querySelectorAll('[data-color]').forEach(sw=>sw.onclick=()=>{ syncEvFormToData(); d.color = sw.dataset.color; eventModal.colorPickerOpen = false; rerenderEventModal(); });
+      colorSwatches.querySelectorAll('[data-color]').forEach(sw=>sw.onclick=()=>{
+        syncEvFormToData();
+        d.color = sw.dataset.color;
+        eventModal.colorPickerOpen = false;
+        try{ localStorage.setItem('ss-last-color', d.color); }catch(e){}
+        rerenderEventModal();
+      });
     }
     const urlClear = document.getElementById('ev-url-clear');
     if(urlClear) urlClear.onclick = ()=>{ syncEvFormToData(); d.url=''; rerenderEventModal(); };
