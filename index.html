@@ -128,7 +128,7 @@
   .ss-worker-card .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
   .ss-worker-card .top .wname{font-weight:700;font-size:15px;flex:1;min-width:100px;}
   .ss-skillchip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 6px 3px 10px;font-size:12px;margin:2px;}
-  .ss-skillchip .lv{background:var(--navy);color:#fff;border-radius:50%;width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+  .ss-skillchip .lv{background:var(--navy);color:#fff;border-radius:10px;padding:2px 8px;display:inline-flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;white-space:nowrap;}
   .ss-add-skill-form{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;background:#fff;border:1px dashed var(--line);border-radius:7px;padding:8px;}
   .ss-add-skill-form select,.ss-add-skill-form input{width:auto;min-width:90px;flex:1;}
   .ss-chiptoggle{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 12px;font-size:12px;margin:2px;cursor:pointer;user-select:none;}
@@ -297,7 +297,7 @@
     {name:'ブライト・オレンジ', hex:'#FB8C00'},
     {name:'ソフト・バイオレット', hex:'#9575CD'},
   ];
-  let state = { equipmentTypes: [], workTypes: [], workers: [], vendors: [], projects: [], templates: [], calendars: [] };
+  let state = { equipmentTypes: [], workTypes: [], specialWorks: [], workers: [], vendors: [], projects: [], templates: [], calendars: [] };
   let tab = 'calendar';
   let calMonth = new Date(); calMonth.setDate(1);
   let calVisible = {}; // calendarId -> bool
@@ -313,6 +313,7 @@
   let searchModal = null; // {query, startDate, endDate}
   const imageCache = {}; // key -> dataUrl
   let skillFormOpenWorkerId = null;
+  let tpSelectedSpecialWorkIds = [];
   let outsourceFormOpenId = null; // reused inside modal context via eventModal
   let chatMessages = [];
   let chatApiHistory = [];
@@ -330,6 +331,8 @@
   function eqName(id){ const e=state.equipmentTypes.find(e=>e.id===id); return e?e.name:''; }
   function eqColorIdx(id){ const i=state.equipmentTypes.findIndex(e=>e.id===id); return i<0?'#9AA5AB':COLORS[i%COLORS.length]; }
   function wtName(id){ const w=state.workTypes.find(w=>w.id===id); return w?w.name:''; }
+  function swName(id){ const s=state.specialWorks.find(s=>s.id===id); return s?s.name:''; }
+  function swNames(ids){ return (ids||[]).map(swName).filter(Boolean).join('、'); }
   function worker(id){ return state.workers.find(w=>w.id===id); }
   function surnameOf(name){ return (name||'').trim().split(/[\s　]+/)[0] || name; }
   function calendar(id){ return state.calendars.find(c=>c.id===id); }
@@ -382,6 +385,7 @@
     if(master){
       state.equipmentTypes = master.equipmentTypes || [];
       state.workTypes = master.workTypes || [];
+      state.specialWorks = master.specialWorks || [];
       state.workers = master.workers || [];
       state.vendors = master.vendors || [];
       state.templates = master.templates || [];
@@ -389,6 +393,7 @@
     } else {
       state.equipmentTypes = ['製氷機','縦型冷蔵庫','エアコン','洗浄機'].map(n=>({id:uid('eq'),name:n}));
       state.workTypes = ['新規設置','入替え','廃棄','修理'].map(n=>({id:uid('wt'),name:n}));
+      state.specialWorks = [];
       state.workers = [];
       state.vendors = [];
       state.templates = [];
@@ -415,7 +420,7 @@
     }
   }
   async function saveMaster(){
-    try{ await apiSet('master-data-v4', {equipmentTypes:state.equipmentTypes, workTypes:state.workTypes, workers:state.workers, vendors:state.vendors, templates:state.templates, calendars:state.calendars}); }
+    try{ await apiSet('master-data-v4', {equipmentTypes:state.equipmentTypes, workTypes:state.workTypes, specialWorks:state.specialWorks, workers:state.workers, vendors:state.vendors, templates:state.templates, calendars:state.calendars}); }
     catch(e){ console.error('save master failed', e); toast('⚠ 保存に失敗しました。通信環境をご確認ください'); }
   }
   async function saveProjects(){
@@ -431,6 +436,7 @@
   function isAvailable(workerId, start, end, excludeProjectId){
     return !state.projects.some(p => p.id!==excludeProjectId && (p.assignedWorkerIds||[]).includes(workerId) && overlap(p.start,p.end,start,end));
   }
+  function levelLabel(n){ return n>=2 ? 'メイン' : '補助'; }
   function skillFor(w, equipmentTypeId, workTypeId){
     const entries = (w.skills||[]).filter(s=>s.equipmentTypeId===equipmentTypeId && s.workTypeId===workTypeId);
     if(entries.length===0) return 0;
@@ -448,7 +454,13 @@
       return {worker:w, skill, available, qualified, overtimeRatio, score};
     });
     const usable = candidates.filter(c=>c.available).sort((a,b)=> (b.qualified-a.qualified) || (b.score-a.score));
-    const picked = usable.slice(0, requiredCount);
+    let picked = usable.slice(0, requiredCount);
+    if(requiredCount>0 && !picked.some(c=>c.skill>=2)){
+      const bestMain = usable.find(c=>c.skill>=2 && !picked.includes(c));
+      if(bestMain){
+        picked = picked.length>0 ? picked.slice(0, picked.length-1).concat(bestMain) : [bestMain];
+      }
+    }
     const shortage = Math.max(0, requiredCount - picked.length);
     return {picked, shortage, candidates};
   }
@@ -510,7 +522,7 @@
       if(!name) return null;
       let w = state.workers.find(w=>w.name===name);
       if(!w){
-        w = {id:uid('w'), name, type:'社員', skills: equipmentTypeId&&workTypeId ? [{id:uid('sk'), equipmentTypeId, workTypeId, level:3}] : [], overtimeHours:0, maxOvertimeHours:45};
+        w = {id:uid('w'), name, type:'社員', skills: equipmentTypeId&&workTypeId ? [{id:uid('sk'), equipmentTypeId, workTypeId, level:2}] : [], overtimeHours:0, maxOvertimeHours:45};
         state.workers.push(w);
         created = true;
       }
@@ -614,6 +626,9 @@
         <div class="ss-subhead">作業内容</div>
         <div id="ss-wt"></div>
         <div class="ss-row" style="margin-top:6px;"><input type="text" id="new-wt" placeholder="例：入替え"><button class="ss-btn ghost small" id="add-wt" style="flex:0 0 auto;">追加</button></div>
+        <div class="ss-subhead">特殊作業</div>
+        <div id="ss-sw"></div>
+        <div class="ss-row" style="margin-top:6px;"><input type="text" id="new-sw" placeholder="例：冷媒工事"><button class="ss-btn ghost small" id="add-sw" style="flex:0 0 auto;">追加</button></div>
       </div>
 
       <div class="ss-card">
@@ -625,6 +640,10 @@
           <select id="tp-unit" style="max-width:90px;"><option value="時間">時間</option><option value="日">日</option></select>
           <input type="number" id="tp-count" min="1" placeholder="標準人数" style="max-width:100px;">
           <button class="ss-btn teal" id="tp-add" style="flex:0 0 auto;">登録</button>
+        </div>
+        <div class="ss-field" style="margin-top:8px;">
+          <label>特殊作業（該当すれば選択）</label>
+          <div id="tp-sw">${state.specialWorks.map(sw=>`<span class="ss-chiptoggle" data-tp-sw="${sw.id}">${sw.name}</span>`).join('') || '<span class="ss-empty" style="padding:0;">特殊作業が未登録です</span>'}</div>
         </div>
         <div id="tp-list" style="margin-top:10px;"></div>
       </div>
@@ -676,6 +695,25 @@
       state.workTypes.push({id:uid('wt'),name:v}); await saveMaster(); render();
     };
 
+    const $sw = document.getElementById('ss-sw');
+    $sw.innerHTML = state.specialWorks.map(t=>`<span class="ss-taskchip">${t.name}<button class="ss-x" data-del-sw="${t.id}">×</button></span>`).join('') || '<span class="ss-empty">未登録</span>';
+    $sw.querySelectorAll('[data-del-sw]').forEach(b=>b.onclick=async()=>{
+      const id=b.dataset.delSw;
+      state.specialWorks = state.specialWorks.filter(t=>t.id!==id);
+      state.templates.forEach(t=>{ t.specialWorkIds=(t.specialWorkIds||[]).filter(x=>x!==id); });
+      await saveMaster(); render();
+    });
+    document.getElementById('add-sw').onclick = async()=>{
+      const v = document.getElementById('new-sw').value.trim(); if(!v) return;
+      state.specialWorks.push({id:uid('sw'),name:v}); await saveMaster(); render();
+    };
+    document.querySelectorAll('#tp-sw [data-tp-sw]').forEach(chip=>chip.onclick=()=>{
+      const id = chip.dataset.tpSw;
+      if(tpSelectedSpecialWorkIds.includes(id)) tpSelectedSpecialWorkIds = tpSelectedSpecialWorkIds.filter(x=>x!==id);
+      else tpSelectedSpecialWorkIds.push(id);
+      chip.classList.toggle('on');
+    });
+
     renderTemplateList();
     document.getElementById('tp-add').onclick = async ()=>{
       const equipmentTypeId = document.getElementById('tp-eq').value;
@@ -683,12 +721,14 @@
       const durationValue = Number(document.getElementById('tp-duration').value);
       const durationUnit = document.getElementById('tp-unit').value;
       const requiredCount = Number(document.getElementById('tp-count').value);
+      const specialWorkIds = tpSelectedSpecialWorkIds.slice();
       if(!equipmentTypeId || !workTypeId){ toast('機器種類・作業内容が未登録です'); return; }
       if(!durationValue || !requiredCount){ toast('標準時間と標準人数を入力してください'); return; }
       const existing = findTemplate(equipmentTypeId, workTypeId);
-      if(existing){ existing.durationValue=durationValue; existing.durationUnit=durationUnit; existing.requiredCount=requiredCount; }
-      else { state.templates.push({id:uid('tp'), equipmentTypeId, workTypeId, durationValue, durationUnit, requiredCount}); }
-      await saveMaster(); toast('テンプレートを登録しました'); renderTemplateList();
+      if(existing){ existing.durationValue=durationValue; existing.durationUnit=durationUnit; existing.requiredCount=requiredCount; existing.specialWorkIds=specialWorkIds; }
+      else { state.templates.push({id:uid('tp'), equipmentTypeId, workTypeId, durationValue, durationUnit, requiredCount, specialWorkIds}); }
+      tpSelectedSpecialWorkIds = [];
+      await saveMaster(); toast('テンプレートを登録しました'); render();
     };
     document.getElementById('imp-run').onclick = ()=>{
       const text = document.getElementById('imp-text').value;
@@ -709,9 +749,10 @@
     if(!$t) return;
     if(state.templates.length===0){ $t.innerHTML = `<div class="ss-empty">テンプレートが未登録です。よく発生する工事から登録していきましょう。</div>`; return; }
     $t.innerHTML = `<div class="ss-table-wrap"><table class="ss-table">
-      <tr><th>工事内容</th><th>標準時間</th><th>標準人数</th><th></th></tr>
+      <tr><th>工事内容</th><th>標準時間</th><th>標準人数</th><th>特殊作業</th><th></th></tr>
       ${state.templates.map(t=>`
         <tr><td>${templateLabel(t)}</td><td class="mono">${t.durationValue}${t.durationUnit}</td><td class="mono">${t.requiredCount}人</td>
+        <td>${swNames(t.specialWorkIds) || '－'}</td>
         <td><button class="ss-x" data-del-tp="${t.id}">×</button></td></tr>
       `).join('')}
     </table></div>`;
@@ -727,7 +768,7 @@
     $l.innerHTML = state.workers.map(w=>`
       <div class="ss-worker-card">
         <div class="top">
-          <span class="wname">${w.name}</span>
+          <input type="text" class="wname-input" data-w="${w.id}" data-f="name" value="${w.name}" style="flex:1;min-width:100px;font-weight:700;font-size:15px;">
           <select data-w="${w.id}" data-f="type" style="width:80px;">
             <option value="社員" ${w.type==='社員'?'selected':''}>社員</option>
             <option value="外注" ${w.type==='外注'?'selected':''}>外注</option>
@@ -740,14 +781,14 @@
         </div>
         <div>
           ${(w.skills||[]).length===0 ? '<span class="ss-empty" style="padding:0;">スキル未登録</span>' :
-            w.skills.map(s=>`<span class="ss-skillchip"><span class="lv">${s.level}</span>${eqName(s.equipmentTypeId)}／${wtName(s.workTypeId)}<button class="ss-x" data-del-skill="${w.id}|${s.id}" style="padding:0 2px;">×</button></span>`).join('')}
+            w.skills.map(s=>`<span class="ss-skillchip"><span class="lv">${levelLabel(s.level)}</span>${eqName(s.equipmentTypeId)}／${wtName(s.workTypeId)}<button class="ss-x" data-del-skill="${w.id}|${s.id}" style="padding:0 2px;">×</button></span>`).join('')}
         </div>
         <button class="ss-btn ghost small" data-add-skill="${w.id}" style="margin-top:6px;">＋ スキルを追加</button>
         ${skillFormOpenWorkerId===w.id ? `
           <div class="ss-add-skill-form">
             <select id="nf-eq-${w.id}">${state.equipmentTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
             <select id="nf-wt-${w.id}">${state.workTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
-            <select id="nf-lv-${w.id}">${[1,2,3,4,5].map(n=>`<option value="${n}" ${n===3?'selected':''}>Lv${n}</option>`).join('')}</select>
+            <select id="nf-lv-${w.id}"><option value="2" selected>メイン</option><option value="1">補助</option></select>
             <button class="ss-btn small teal" data-save-skill="${w.id}">保存</button>
           </div>
         ` : ''}
@@ -756,7 +797,13 @@
 
     $l.querySelectorAll('[data-f]').forEach(inp=>inp.onchange=async()=>{
       const w = worker(inp.dataset.w);
-      w[inp.dataset.f] = inp.dataset.f==='type' ? inp.value : (Number(inp.value)||0);
+      if(inp.dataset.f==='name'){
+        const v = inp.value.trim();
+        if(!v){ toast('氏名を入力してください'); renderWorkerList(); return; }
+        w.name = v;
+      } else {
+        w[inp.dataset.f] = inp.dataset.f==='type' ? inp.value : (Number(inp.value)||0);
+      }
       await saveMaster(); renderWorkerList();
     });
     $l.querySelectorAll('[data-del-w]').forEach(b=>b.onclick=async()=>{
@@ -1374,7 +1421,7 @@
           if(!exists){
             state.projects.push({
               id:uid('p'), name:title, address:'', salesRep:'', workDetail:'', equipmentTypeId:null, workTypeId:null,
-              requiredLevel:3, start:cur, end:cur, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
+              requiredLevel:2, start:cur, end:cur, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
               assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
               calendarId, images:[], color:null, createdAt:new Date().toISOString(),
             });
@@ -1471,7 +1518,7 @@
     if(mode==='new'){
       eventModal = { mode:'new', data:{
         name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
-        requiredLevel:3, start:dateStr, end:dateStr, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
+        requiredLevel:2, start:dateStr, end:dateStr, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
         assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
         calendarId: mainCalendarId(), images:[], color:getLastUsedColor(),
       }, originalImageKeys:[], colorPickerOpen:false };
@@ -1837,7 +1884,7 @@
     if(autoBtn) autoBtn.onclick = ()=>{
       const start = document.getElementById('ev-start').value;
       const end = document.getElementById('ev-end').value;
-      const result = suggest({equipmentTypeId:d.equipmentTypeId, workTypeId:d.workTypeId, requiredLevel:d.requiredLevel||3, start, end, requiredCount: Number(document.getElementById('ev-count').value)||1}, eventModal.id||null);
+      const result = suggest({equipmentTypeId:d.equipmentTypeId, workTypeId:d.workTypeId, requiredLevel:d.requiredLevel||2, start, end, requiredCount: Number(document.getElementById('ev-count').value)||1}, eventModal.id||null);
       syncEvFormToData();
       d.assignedWorkerIds = result.picked.map(c=>c.worker.id);
       if(result.shortage>0) toast(`⚠ ${result.shortage}名不足しています。外注を検討してください`);
@@ -1894,7 +1941,7 @@
         const removedKeys = (eventModal.originalImageKeys||[]).filter(k=>!images.some(im=>im.key===k));
         for(const key of removedKeys){ await apiDeleteKey(key); }
         const payload = {
-          name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||3,
+          name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||2,
           start, end, allDay: d.allDay, startTime, endTime, url, requiredCount, assignedWorkerIds: d.assignedWorkerIds||[], outsourceCount: 0,
           vendorEntries: d.vendorEntries||[], budgetAmount, actualAmount, calendarId, images, color: d.color||null,
         };
@@ -2062,7 +2109,7 @@
     let picked = namedWorkers.map(w=>({worker:w, skill: skillFor(w, fields.equipmentTypeId, fields.workTypeId)}));
     let shortage = 0;
     if(picked.length < requiredCount){
-      const result = suggest({equipmentTypeId:fields.equipmentTypeId, workTypeId:fields.workTypeId, requiredLevel:3, start, end, requiredCount: requiredCount - picked.length}, null, picked.map(c=>c.worker.id));
+      const result = suggest({equipmentTypeId:fields.equipmentTypeId, workTypeId:fields.workTypeId, requiredLevel:2, start, end, requiredCount: requiredCount - picked.length}, null, picked.map(c=>c.worker.id));
       picked = picked.concat(result.picked);
       shortage = result.shortage;
     }
@@ -2087,7 +2134,7 @@
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;" class="mono">${p.start}${p.start!==p.end?(' 〜 '+p.end):''} ／ ${eqName(p.equipmentTypeId)}／${wtName(p.workTypeId)} ／ 想定時間:${p.estimatedHours}</div>
       <div class="ss-subhead" style="margin:6px 0 4px;">推奨人員（内部）</div>
       ${p.picked.length===0 ? '<div class="ss-empty" style="padding:2px;">候補なし</div>' :
-        p.picked.map(w=>`<span class="ss-skillchip"><span class="lv">${w.skill}</span>${w.name}<span style="color:var(--muted);font-size:10px;margin-left:3px;">(残業${w.overtimeHours}h)</span></span>`).join('')}
+        p.picked.map(w=>`<span class="ss-skillchip"><span class="lv">${levelLabel(w.skill)}</span>${w.name}<span style="color:var(--muted);font-size:10px;margin-left:3px;">(残業${w.overtimeHours}h)</span></span>`).join('')}
       ${p.shortage>0 ? `<div class="ss-shortage" style="margin-top:8px;">⚠ ${p.shortage}名不足。${p.vendorCands.length?('外注候補：'+p.vendorCands.join('、')):'対応可能な外注先が未登録です。'}</div>` : ''}
       ${p.warnings.length ? `<div style="margin-top:8px;">${p.warnings.map(w=>`<div style="font-size:12px;color:var(--amber-deep);">⚠ ${w}</div>`).join('')}</div>` : ''}
       <button class="ss-btn amber small" id="chat-confirm-proposal" style="margin-top:10px;">この内容でカレンダー登録する</button>
@@ -2096,7 +2143,7 @@
   async function confirmChatProposal(p){
     state.projects.push({
       id: uid('p'), name: p.name, address: p.address, salesRep: '', workDetail: p.warnings.join('／'),
-      equipmentTypeId: p.equipmentTypeId, workTypeId: p.workTypeId, requiredLevel: 3, start: p.start, end: p.end,
+      equipmentTypeId: p.equipmentTypeId, workTypeId: p.workTypeId, requiredLevel: 2, start: p.start, end: p.end,
       allDay:true, requiredCount: p.requiredCount, assignedWorkerIds: p.picked.map(w=>w.id), outsourceCount: p.shortage,
       vendorEntries: [], budgetAmount: 0, actualAmount: 0, calendarId: p.calendarId, createdAt: new Date().toISOString(),
     });
