@@ -9,6 +9,7 @@
     --violet:#6A4A8A;--violet-bg:#F1E7F5;--teal:#2E7D74;--teal-bg:#E4F1EF;--radius:10px;
   }
   *{box-sizing:border-box;}
+  #ss-root button{touch-action:manipulation;}
   #ss-root{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100%;padding:0;font-size:14px;line-height:1.5;}
   #ss-root .mono{font-family:'JetBrains Mono',monospace;}
   #ss-root h1,#ss-root h2,#ss-root h3,#ss-root .disp{font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em;}
@@ -155,10 +156,10 @@
   .ss-detail-back{background:none;border:none;color:var(--navy);font-size:22px;cursor:pointer;padding:2px 6px;flex-shrink:0;}
   .ss-detail-menu-btn{background:none;border:none;color:var(--navy);font-size:22px;cursor:pointer;padding:2px 10px;flex-shrink:0;position:relative;}
   .ss-detail-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;line-height:1.35;margin-bottom:14px;}
-  .ss-detail-datebox{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
-  .ss-detail-datebox .dt{font-family:'JetBrains Mono',monospace;}
-  .ss-detail-datebox .dt b{font-size:26px;display:block;}
-  .ss-detail-datebox .dt span{font-size:13px;color:var(--muted);}
+  .ss-detail-datebox{margin-bottom:18px;}
+  .ss-detail-date-line{font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .ss-detail-time-row{display:flex;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;}
+  .ss-detail-time-row b{font-size:28px;}
   .ss-detail-arrow{color:var(--muted);font-size:20px;}
   .ss-detail-row{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px dashed var(--line);}
   .ss-detail-row:last-child{border-bottom:none;}
@@ -169,6 +170,10 @@
   .ss-detail-menu button:hover{background:var(--paper);}
   .ss-detail-menu button.danger{color:var(--danger);}
   .ss-detail-menu hr{border:none;border-top:1px solid var(--line);margin:0;}
+  .ss-image-viewer-overlay{background:rgba(10,14,18,.92);align-items:center;justify-content:center;padding:24px;z-index:300;}
+  .ss-image-viewer{position:relative;max-width:100%;max-height:100%;}
+  .ss-image-viewer img{max-width:100%;max-height:85vh;display:block;margin:0 auto;border-radius:8px;object-fit:contain;}
+  .ss-image-viewer-close{position:absolute;top:-14px;right:-14px;background:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.3);}
   @media(max-width:640px){
     #ss-root{font-size:15px;}
     label{font-size:12px;}
@@ -248,6 +253,8 @@
   let detailModal = null; // projectId
   let detailMenuOpen = false;
   let copyModal = null; // {projectId, date, calendarId}
+  let imageViewer = null; // dataUrl
+  let recurringModal = null; // {title, calendarId, weekdays:{0..6:bool}, includeHolidays, startDate, endDate}
   const imageCache = {}; // key -> dataUrl
   let skillFormOpenWorkerId = null;
   let outsourceFormOpenId = null; // reused inside modal context via eventModal
@@ -376,6 +383,50 @@
   }
   function findTemplate(eq, wt){ return state.templates.find(t=>t.equipmentTypeId===eq && t.workTypeId===wt); }
   function addDays(dateStr, n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return fmtDate(d); }
+
+  // ---------- 日本の祝日（1980-2099年の近似式・ハッピーマンデー対応） ----------
+  function vernalEquinoxDay(y){ return Math.floor(20.8431 + 0.242194*(y-1980) - Math.floor((y-1980)/4)); }
+  function autumnalEquinoxDay(y){ return Math.floor(23.2488 + 0.242194*(y-1980) - Math.floor((y-1980)/4)); }
+  function nthWeekdayOfMonth(y, m, weekday, n){
+    const firstWeekday = new Date(y, m, 1).getDay();
+    const offset = (weekday - firstWeekday + 7) % 7;
+    return 1 + offset + (n-1)*7;
+  }
+  const holidayCache = {};
+  function japaneseHolidaysForYear(y){
+    const h = {};
+    const set = (m,d,name)=>{ h[fmtDate(new Date(y,m,d))] = name; };
+    set(0,1,'元日');
+    set(0, nthWeekdayOfMonth(y,0,1,2), '成人の日');
+    set(1,11,'建国記念の日');
+    set(1,23,'天皇誕生日');
+    set(2, vernalEquinoxDay(y), '春分の日');
+    set(3,29,'昭和の日');
+    set(4,3,'憲法記念日');
+    set(4,4,'みどりの日');
+    set(4,5,'こどもの日');
+    set(6, nthWeekdayOfMonth(y,6,1,3), '海の日');
+    set(7,11,'山の日');
+    set(8, nthWeekdayOfMonth(y,8,1,3), '敬老の日');
+    set(8, autumnalEquinoxDay(y), '秋分の日');
+    set(9, nthWeekdayOfMonth(y,9,1,2), 'スポーツの日');
+    set(10,3,'文化の日');
+    set(10,23,'勤労感謝の日');
+    Object.keys(h).sort().forEach(dateStr=>{
+      const d = new Date(dateStr+'T00:00:00');
+      if(d.getDay()===0){
+        let sub = new Date(d);
+        do{ sub.setDate(sub.getDate()+1); } while(h[fmtDate(sub)]);
+        h[fmtDate(sub)] = '振替休日';
+      }
+    });
+    return h;
+  }
+  function isJapaneseHoliday(dateStr){
+    const y = Number(dateStr.slice(0,4));
+    if(!holidayCache[y]) holidayCache[y] = japaneseHolidaysForYear(y);
+    return holidayCache[y][dateStr] || null;
+  }
   function templateLabel(t){ return `${eqName(t.equipmentTypeId)}／${wtName(t.workTypeId)}`; }
   async function resolveNamedWorkers(names, equipmentTypeId, workTypeId){
     if(!names || names.length===0) return [];
@@ -735,6 +786,7 @@
           <div class="ss-cal-legend-row">
             <div class="ss-cal-legend" id="cal-legend"></div>
             <button type="button" class="ss-cal-add-btn" id="cal-add-calendar" title="カレンダーを追加">＋</button>
+            <button type="button" class="ss-cal-add-btn" id="cal-recurring-btn" title="休みを一括登録">🔁</button>
           </div>
         </div>
         <div class="ss-cal-toolbar">
@@ -742,12 +794,12 @@
           <span>
             <button class="ss-btn ghost small" id="cal-prev">◀ 前月</button>
             <button class="ss-btn ghost small" id="cal-next">翌月 ▶</button>
-            <button class="ss-btn amber small" id="cal-add-event">＋ 予定を追加</button>
           </span>
         </div>
         <div class="ss-cal-grid" id="cal-grid"></div>
       </div>
-      ${eventModal ? renderEventModalHtml() : copyModal ? renderCopyModalHtml() : detailModal ? renderDetailModalHtml() : (dayListModal ? renderDayListModalHtml() : '')}
+      ${eventModal ? renderEventModalHtml() : copyModal ? renderCopyModalHtml() : recurringModal ? renderRecurringModalHtml() : detailModal ? renderDetailModalHtml() : (dayListModal ? renderDayListModalHtml() : '')}
+      ${imageViewer ? renderImageViewerHtml() : ''}
     `;
     const $legend = document.getElementById('cal-legend');
     $legend.innerHTML = state.calendars.map(c=>`
@@ -768,16 +820,16 @@
       await saveMaster();
       renderCalendar();
     };
+    document.getElementById('cal-recurring-btn').onclick = openRecurringModal;
     document.getElementById('cal-prev').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()-1); renderCalendar(); };
     document.getElementById('cal-next').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()+1); renderCalendar(); };
-    document.getElementById('cal-add-event').onclick=()=>{ openEventModal('new', todayStr()); };
     document.getElementById('cal-label').textContent = `${calMonth.getFullYear()}年 ${calMonth.getMonth()+1}月`;
 
     const $g = document.getElementById('cal-grid');
-    const dows = ['日','月','火','水','木','金','土'];
+    const dows = ['月','火','水','木','金','土','日'];
     let html = dows.map(d=>`<div class="ss-cal-dow">${d}</div>`).join('');
     const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
-    const startOffset = first.getDay();
+    const startOffset = (first.getDay() + 6) % 7;
     const daysInMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 0).getDate();
     const today = todayStr();
     for(let i=0;i<startOffset;i++) html += `<div></div>`;
@@ -785,7 +837,7 @@
       const dateStr = fmtDate(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
       const items = state.projects.filter(p => p.start<=dateStr && dateStr<=p.end && calVisible[p.calendarId]!==false);
       html += `<div class="ss-cal-cell ${dateStr===today?'today':''}" data-day="${dateStr}"><div class="d">${d}</div>
-        ${items.map(p=>`<div class="ss-cal-item" style="background:${eventColor(p)}" title="${p.name}">${p.startTime?(p.startTime+' '):''}${p.name}${p.url?' 🔗':''}</div>`).join('')}
+        ${items.map(p=>`<div class="ss-cal-item" style="background:${eventColor(p)}" title="${p.name}">${p.name}${p.url?' 🔗':''}</div>`).join('')}
       </div>`;
     }
     $g.innerHTML = html;
@@ -793,8 +845,10 @@
 
     if(eventModal) attachEventModalHandlers();
     else if(copyModal) attachCopyHandlers();
+    else if(recurringModal) attachRecurringHandlers();
     else if(detailModal) attachDetailHandlers();
     else if(dayListModal) attachDayListHandlers();
+    if(imageViewer) attachImageViewerHandlers();
   }
 
   function dayLabel(dateStr){
@@ -828,7 +882,7 @@
               <span class="ss-dot" style="background:${eventColor(p)}"></span>
               <div style="flex:1;">
                 <b>${p.startTime?(p.startTime+' '):''}${p.name}</b>
-                <div class="mono meta" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</div>
+                ${[comboLabel(p), p.address, p.url?'🔗':''].filter(Boolean).length ? `<div class="mono meta" style="color:var(--muted);font-size:11px;">${[comboLabel(p), p.address, p.url?'🔗':''].filter(Boolean).join(' / ')}</div>` : ''}
                 <div class="meta" style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}</div>
               </div>
             </div>
@@ -872,7 +926,6 @@
     const participantNames = (p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean);
     const vendorNames = (p.vendorEntries||[]).map(v=>`${v.vendorName}（外注）`);
     const allParticipants = [...participantNames, ...vendorNames];
-    const showEndDate = p.start!==p.end || (p.startTime && p.endTime);
     return `
     <div class="ss-modal-overlay" id="detail-overlay">
       <div class="ss-modal">
@@ -892,8 +945,11 @@
         </div>
         <div class="ss-detail-title" style="color:${color};">${p.name}</div>
         <div class="ss-detail-datebox">
-          <div class="dt"><b>${dayLabel(p.start)}</b><span>${p.startTime || (p.allDay?'終日':'')}</span></div>
-          ${showEndDate ? `<span class="ss-detail-arrow">›</span><div class="dt"><b>${dayLabel(p.end)}</b><span>${p.endTime||''}</span></div>` : ''}
+          <div class="ss-detail-date-line">${dayLabel(p.start)}${p.start!==p.end ? (' 〜 '+dayLabel(p.end)) : ''}</div>
+          <div class="ss-detail-time-row">
+            <b>${p.startTime || (p.allDay?'終日':'')}</b>
+            ${p.endTime ? `<span class="ss-detail-arrow">›</span><b>${p.endTime}</b>` : ''}
+          </div>
         </div>
         <div class="ss-detail-row"><span class="ic">👥</span><div class="body">${allParticipants.length ? allParticipants.join('、') : '未割当'}</div></div>
         ${p.workDetail ? `<div class="ss-detail-row"><span class="ic">📝</span><div class="body">${p.workDetail}</div></div>` : ''}
@@ -914,7 +970,7 @@
         ${imageCache[im.key] ? `<img src="${imageCache[im.key]}" data-view-img="1">` : `<div class="ss-image-loading">読込中…</div>`}
       </div>
     `).join('');
-    $imgs.querySelectorAll('[data-view-img]').forEach(img=>img.onclick=()=>window.open(img.src, '_blank'));
+    $imgs.querySelectorAll('[data-view-img]').forEach(img=>img.onclick=()=>openImageViewer(img.src));
   }
   async function fetchDetailImages(){
     const p = state.projects.find(p=>p.id===detailModal);
@@ -1003,11 +1059,107 @@
     };
   }
 
+  function openRecurringModal(){
+    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
+    const last = new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 0);
+    recurringModal = {
+      title: '休み',
+      calendarId: mainCalendarId(),
+      weekdays: {0:true,1:false,2:false,3:false,4:false,5:false,6:true},
+      includeHolidays: true,
+      startDate: fmtDate(first),
+      endDate: fmtDate(last),
+    };
+    renderCalendar();
+  }
+  function closeRecurringModal(){ recurringModal = null; renderCalendar(); }
+  function renderRecurringModalHtml(){
+    const dowNames = ['日','月','火','水','木','金','土'];
+    return `
+    <div class="ss-modal-overlay" id="recurring-overlay">
+      <div class="ss-modal">
+        <div class="ss-modal-head">
+          <h3>休みを一括登録</h3>
+          <button class="ss-x" id="recurring-close" style="font-size:20px;">×</button>
+        </div>
+        <div class="ss-field"><label>タイトル</label><input type="text" id="rec-title" value="${recurringModal.title}"></div>
+        <div class="ss-field"><label>登録するカレンダー</label>
+          <select id="rec-calendar">${state.calendars.map(c=>`<option value="${c.id}" ${recurringModal.calendarId===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
+        </div>
+        <div class="ss-field"><label>対象の曜日</label>
+          <div>${dowNames.map((w,i)=>`<span class="ss-chiptoggle ${recurringModal.weekdays[i]?'on':''}" data-wd="${i}">${w}</span>`).join('')}</div>
+        </div>
+        <div class="ss-toggle-row">
+          <span>祝日も含める</span>
+          <div class="ss-switch ${recurringModal.includeHolidays?'on':''}" id="rec-holiday-toggle"><div class="knob"></div></div>
+        </div>
+        <div class="ss-row">
+          <div class="ss-field"><label>開始日</label><input type="date" id="rec-start" value="${recurringModal.startDate}"></div>
+          <div class="ss-field"><label>終了日</label><input type="date" id="rec-end" value="${recurringModal.endDate}"></div>
+        </div>
+        <div class="ss-hint">選択した曜日・祝日にあてはまる日に、指定期間内で予定を一括登録します。既に同じ内容の予定がある日はスキップされます。</div>
+        <div class="ss-modal-actions">
+          <div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="ss-btn ghost" id="recurring-cancel">キャンセル</button>
+            <button class="ss-btn amber" id="recurring-confirm">登録する</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+  function attachRecurringHandlers(){
+    document.getElementById('recurring-overlay').addEventListener('click', e=>{ if(e.target.id==='recurring-overlay') closeRecurringModal(); });
+    document.getElementById('recurring-close').onclick = closeRecurringModal;
+    document.getElementById('recurring-cancel').onclick = closeRecurringModal;
+    document.querySelectorAll('#recurring-overlay [data-wd]').forEach(chip=>chip.onclick=()=>{
+      recurringModal.title = document.getElementById('rec-title').value;
+      recurringModal.weekdays[Number(chip.dataset.wd)] = !recurringModal.weekdays[Number(chip.dataset.wd)];
+      renderCalendar();
+    });
+    document.getElementById('rec-holiday-toggle').onclick = ()=>{
+      recurringModal.title = document.getElementById('rec-title').value;
+      recurringModal.includeHolidays = !recurringModal.includeHolidays;
+      renderCalendar();
+    };
+    document.getElementById('recurring-confirm').onclick = async()=>{
+      const title = document.getElementById('rec-title').value.trim() || '休み';
+      const calendarId = document.getElementById('rec-calendar').value;
+      const startDate = document.getElementById('rec-start').value;
+      const endDate = document.getElementById('rec-end').value;
+      if(!startDate || !endDate || startDate>endDate){ toast('期間の指定が正しくありません'); return; }
+      let count = 0;
+      let cur = startDate;
+      while(cur<=endDate){
+        const dow = new Date(cur+'T00:00:00').getDay();
+        const match = recurringModal.weekdays[dow] || (recurringModal.includeHolidays && isJapaneseHoliday(cur));
+        if(match){
+          const exists = state.projects.some(p=>p.start===cur && p.end===cur && p.name===title && p.calendarId===calendarId);
+          if(!exists){
+            state.projects.push({
+              id:uid('p'), name:title, address:'', salesRep:'', workDetail:'', equipmentTypeId:null, workTypeId:null,
+              requiredLevel:3, start:cur, end:cur, allDay:true, startTime:'', endTime:'', url:'', requiredCount:1,
+              assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
+              calendarId, images:[], color:null, createdAt:new Date().toISOString(),
+            });
+            count++;
+          }
+        }
+        cur = addDays(cur, 1);
+      }
+      if(count===0){ toast('該当する新規登録日はありませんでした'); closeRecurringModal(); return; }
+      await saveProjects();
+      closeRecurringModal();
+      toast(`${count}件の予定を登録しました`);
+    };
+  }
+
   function openEventModal(mode, dateStr, projectId){
     dayListModal = null;
     detailModal = null;
     detailMenuOpen = false;
     copyModal = null;
+    recurringModal = null;
     if(mode==='new'){
       eventModal = { mode:'new', data:{
         name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
@@ -1154,7 +1306,7 @@
       eventModal.data.images = (eventModal.data.images||[]).filter(i=>i.id!==id);
       renderEvImages();
     });
-    $imgs.querySelectorAll('[data-view-img]').forEach(img=>img.onclick=()=>{ window.open(img.src, '_blank'); });
+    $imgs.querySelectorAll('[data-view-img]').forEach(img=>img.onclick=()=>{ openImageViewer(img.src); });
   }
   function resizeImageToDataUrl(file, maxDim, quality){
     return new Promise((resolve, reject)=>{
@@ -1184,7 +1336,24 @@
     catch(e){ console.error('delete blob failed', e); }
   }
 
+  function openImageViewer(dataUrl){ syncEvFormToData(); imageViewer = dataUrl; renderCalendar(); }
+  function closeImageViewer(){ imageViewer = null; renderCalendar(); }
+  function renderImageViewerHtml(){
+    return `
+    <div class="ss-modal-overlay ss-image-viewer-overlay" id="imgviewer-overlay">
+      <div class="ss-image-viewer">
+        <button type="button" class="ss-image-viewer-close" id="imgviewer-close">×</button>
+        <img src="${imageViewer}">
+      </div>
+    </div>`;
+  }
+  function attachImageViewerHandlers(){
+    document.getElementById('imgviewer-overlay').addEventListener('click', e=>{ if(e.target.id==='imgviewer-overlay') closeImageViewer(); });
+    document.getElementById('imgviewer-close').onclick = closeImageViewer;
+  }
+
   function syncEvFormToData(){
+    if(!eventModal) return;
     const d = eventModal.data;
     d.name = document.getElementById('ev-name').value;
     d.calendarId = document.getElementById('ev-calendar').value;
