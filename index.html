@@ -797,6 +797,15 @@
       </div>
 
       <div class="ss-card">
+        <div class="ss-card-title">HRMOS連携 <small>指定月の勤怠データから月間稼働時間を集計します（氏名で人員と照合）</small></div>
+        <div class="ss-row">
+          <input type="month" id="hrmos-month" value="${todayStr().slice(0,7)}" style="max-width:160px;">
+          <button class="ss-btn teal small" id="hrmos-fetch" style="flex:0 0 auto;">取得する</button>
+        </div>
+        <div id="hrmos-result" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="ss-card">
         <div class="ss-card-title">人員一覧 <button class="ss-btn small amber" id="ss-add-worker">＋ 人員を追加</button></div>
         <div id="ss-worker-list"></div>
       </div>
@@ -870,6 +879,66 @@
       state.workers.push({id:uid('w'), name, type:'社員', skills:[], overtimeHours:0, maxOvertimeHours:45});
       await saveMaster(); render();
     };
+    document.getElementById('hrmos-fetch').onclick = fetchHrmosData;
+  }
+  function hrmosWorkedMinutes(rec){
+    const toMin = (t)=>{ if(!t) return null; const [h,m] = t.split(':').map(Number); return h*60+m; };
+    const start = toMin(rec.start_at), end = toMin(rec.end_at);
+    if(start==null || end==null) return 0;
+    let mins = end - start;
+    if(mins < 0) mins += 24*60;
+    for(let i=1;i<=3;i++){
+      const bs = toMin(rec[`break_${i}_start_at`]), be = toMin(rec[`break_${i}_end_at`]);
+      if(bs!=null && be!=null){ let b = be-bs; if(b<0) b+=24*60; mins -= b; }
+    }
+    return Math.max(0, mins);
+  }
+  async function fetchHrmosData(){
+    const month = document.getElementById('hrmos-month').value;
+    const $result = document.getElementById('hrmos-result');
+    if(!month){ toast('対象月を選択してください'); return; }
+    $result.innerHTML = `<div class="ss-empty">取得中…</div>`;
+    try{
+      const res = await fetch(`/.netlify/functions/hrmos?month=${month}`);
+      const data = await res.json();
+      if(!res.ok || data.error){
+        $result.innerHTML = `<div class="ss-alert">⚠ 取得に失敗しました：${(data.error||'')} ${data.detail?`<br><span class="mono" style="font-size:11px;">${String(data.detail).slice(0,300)}</span>`:''}</div>`;
+        return;
+      }
+      const byName = {};
+      (data.records||[]).forEach(rec=>{
+        const name = rec.full_name; if(!name) return;
+        byName[name] = (byName[name]||0) + hrmosWorkedMinutes(rec);
+      });
+      const rows = Object.entries(byName).map(([name,mins])=>({name, hours: Math.round(mins/6)/10}));
+      const sample = (data.records||[])[0];
+      $result.innerHTML = `
+        <div class="ss-hint" style="margin-bottom:8px;">${data.count||0}件の日次データを集計しました。以下は「月間の総稼働時間」の参考値です（残業の定義はHRMOS側の設定によるため、実際の残業時間とは異なる場合があります）。氏名が完全一致する人員にのみ反映できます。</div>
+        ${rows.length===0 ? '<div class="ss-empty">対象月のデータがありませんでした。</div>' : `
+        <div class="ss-table-wrap"><table class="ss-table">
+          <tr><th>氏名（HRMOS）</th><th>月間稼働時間</th><th>一致する人員</th><th></th></tr>
+          ${rows.map(r=>{
+            const match = state.workers.find(w=>w.name===r.name);
+            return `<tr>
+              <td>${r.name}</td>
+              <td class="mono">${r.hours}h</td>
+              <td>${match ? match.name : '<span class="ss-empty" style="padding:0;">一致なし</span>'}</td>
+              <td>${match ? `<button class="ss-btn ghost small" data-hrmos-apply="${match.id}" data-hrmos-hours="${r.hours}">今週残業に反映</button>` : ''}</td>
+            </tr>`;
+          }).join('')}
+        </table></div>`}
+        ${sample ? `<details class="ss-details" style="margin-top:8px;"><summary>生データのサンプル（1件目）を見る</summary><pre class="mono" style="font-size:11px;white-space:pre-wrap;background:var(--paper);padding:8px;border-radius:6px;margin-top:6px;">${JSON.stringify(sample,null,2)}</pre></details>` : ''}
+      `;
+      $result.querySelectorAll('[data-hrmos-apply]').forEach(btn=>btn.onclick=async()=>{
+        const w = worker(btn.dataset.hrmosApply);
+        w.overtimeHours = Number(btn.dataset.hrmosHours)||0;
+        await saveMaster();
+        renderWorkerList();
+        toast(`${w.name}さんの残業時間を反映しました`);
+      });
+    }catch(err){
+      $result.innerHTML = `<div class="ss-alert">⚠ 通信エラーが発生しました：${String(err)}</div>`;
+    }
   }
 
   function renderDisposalList(){
