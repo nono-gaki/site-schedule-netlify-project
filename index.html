@@ -365,6 +365,7 @@
   function swName(id){ const s=state.specialWorks.find(s=>s.id===id); return s?s.name:''; }
   function swNames(ids){ return (ids||[]).map(swName).filter(Boolean).join('、'); }
   function worker(id){ return state.workers.find(w=>w.id===id); }
+  function vendor(id){ return state.vendors.find(v=>v.id===id); }
   function surnameOf(name){ return (name||'').trim().split(/[\s　]+/)[0] || name; }
   function calendar(id){ return state.calendars.find(c=>c.id===id); }
   function calColor(id){ const c=calendar(id); return c?c.color:'#9AA5AB'; }
@@ -502,8 +503,16 @@
     const shortage = Math.max(0, requiredCount - picked.length);
     return {picked, shortage, candidates};
   }
+  function vendorSkillFor(v, equipmentTypeId, workTypeId){
+    const entries = (v.capableCombos||[]).filter(c=>(c.equipmentTypeId||null)===(equipmentTypeId||null) && c.workTypeId===workTypeId);
+    if(entries.length===0) return 0;
+    return Math.max(...entries.map(e=>e.level||1));
+  }
+  function vendorSkillEntryFor(v, tpl){
+    return (v.capableCombos||[]).find(c=>(c.equipmentTypeId||null)===(tpl.equipmentTypeId||null) && c.workTypeId===tpl.workTypeId);
+  }
   function vendorHasCombo(v, equipmentTypeId, workTypeId){
-    return (v.capableCombos||[]).some(c=>(c.equipmentTypeId||null)===(equipmentTypeId||null) && c.workTypeId===workTypeId);
+    return vendorSkillFor(v, equipmentTypeId, workTypeId) >= 1;
   }
   function vendorsForCombo(equipmentTypeId, workTypeId){
     return state.vendors.filter(v => vendorHasCombo(v, equipmentTypeId, workTypeId));
@@ -1325,46 +1334,82 @@
           <button class="ss-x" data-del-v="${v.id}">×</button>
         </div>
         ${state.templates.length===0 ? '<span class="ss-empty" style="padding:0;">工事内容テンプレートが未登録です。先に「工事内容テンプレート」から登録してください。</span>' : `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span style="font-size:11px;color:var(--muted);">対応可能な工事</span>
-          <span>
-            <button type="button" class="ss-btn ghost small" data-vc-all="${v.id}" style="padding:2px 8px;font-size:11px;">全選択</button>
-            <button type="button" class="ss-btn ghost small" data-vc-clear="${v.id}" style="padding:2px 8px;font-size:11px;">全解除</button>
-          </span>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">メイン</span>
+            <button type="button" class="ss-btn ghost small" data-vc-main-all="${v.id}" style="padding:2px 8px;font-size:11px;">全選択</button>
+          </div>
+          <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${vendorSkillFor(v,t.equipmentTypeId,t.workTypeId)>=2?'on':''}" data-vc-main="${v.id}|${t.id}">${templateLabel(t)}</span>`).join('')}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 4px;">
+            <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">補助</span>
+            <button type="button" class="ss-btn ghost small" data-vc-sub-all="${v.id}" style="padding:2px 8px;font-size:11px;">全選択</button>
+          </div>
+          <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${vendorSkillFor(v,t.equipmentTypeId,t.workTypeId)>=1?'on':''}" data-vc-sub="${v.id}|${t.id}">${templateLabel(t)}</span>`).join('')}</div>
+          <button type="button" class="ss-btn ghost small" data-vc-clear="${v.id}" style="margin-top:8px;">すべて解除</button>
         </div>
-        <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${vendorHasCombo(v,t.equipmentTypeId,t.workTypeId)?'on':''}" data-vc-tpl="${v.id}|${t.id}">${templateLabel(t)}</span>`).join('')}</div>
         `}
       </div>
     `).join('');
     $l.querySelectorAll('[data-f]').forEach(inp=>inp.onchange=()=>{
-      const v = state.vendors.find(v=>v.id===inp.dataset.v); v[inp.dataset.f]=inp.value; saveMaster();
+      const v = vendor(inp.dataset.v); v[inp.dataset.f]=inp.value; saveMaster();
     });
     $l.querySelectorAll('[data-del-v]').forEach(b=>b.onclick=()=>{
       if(!confirm('削除しますか？')) return;
       state.vendors = state.vendors.filter(v=>v.id!==b.dataset.delV); renderVendors(); saveMaster();
     });
-    $l.querySelectorAll('[data-vc-tpl]').forEach(chip=>chip.onclick=()=>{
-      const [vid, tplId] = chip.dataset.vcTpl.split('|');
-      const v = state.vendors.find(v=>v.id===vid);
+    $l.querySelectorAll('[data-vc-main]').forEach(chip=>chip.onclick=()=>{
+      const [vid, tplId] = chip.dataset.vcMain.split('|');
+      const v = vendor(vid);
       const tpl = state.templates.find(t=>t.id===tplId);
       if(!v || !tpl) return;
       v.capableCombos = v.capableCombos||[];
-      if(vendorHasCombo(v, tpl.equipmentTypeId, tpl.workTypeId)){
-        v.capableCombos = v.capableCombos.filter(c=>!((c.equipmentTypeId||null)===(tpl.equipmentTypeId||null) && c.workTypeId===tpl.workTypeId));
+      const entry = vendorSkillEntryFor(v, tpl);
+      if(entry && (entry.level||1)>=2){
+        v.capableCombos = v.capableCombos.filter(c=>c!==entry);
+      } else if(entry){
+        entry.level = 2;
       } else {
-        v.capableCombos.push({equipmentTypeId: tpl.equipmentTypeId||null, workTypeId: tpl.workTypeId});
+        v.capableCombos.push({equipmentTypeId:tpl.equipmentTypeId||null, workTypeId:tpl.workTypeId, level:2});
       }
       renderVendorList();
       saveMaster();
     });
-    $l.querySelectorAll('[data-vc-all]').forEach(btn=>btn.onclick=()=>{
-      const v = state.vendors.find(v=>v.id===btn.dataset.vcAll);
-      v.capableCombos = state.templates.map(t=>({equipmentTypeId:t.equipmentTypeId||null, workTypeId:t.workTypeId}));
+    $l.querySelectorAll('[data-vc-sub]').forEach(chip=>chip.onclick=()=>{
+      const [vid, tplId] = chip.dataset.vcSub.split('|');
+      const v = vendor(vid);
+      const tpl = state.templates.find(t=>t.id===tplId);
+      if(!v || !tpl) return;
+      v.capableCombos = v.capableCombos||[];
+      const entry = vendorSkillEntryFor(v, tpl);
+      if(entry && (entry.level||1)>=2){
+        toast('メインを解除すると補助も解除されます');
+        return;
+      }
+      if(entry){
+        v.capableCombos = v.capableCombos.filter(c=>c!==entry);
+      } else {
+        v.capableCombos.push({equipmentTypeId:tpl.equipmentTypeId||null, workTypeId:tpl.workTypeId, level:1});
+      }
+      renderVendorList();
+      saveMaster();
+    });
+    $l.querySelectorAll('[data-vc-main-all]').forEach(btn=>btn.onclick=()=>{
+      const v = vendor(btn.dataset.vcMainAll);
+      v.capableCombos = state.templates.map(t=>({equipmentTypeId:t.equipmentTypeId||null, workTypeId:t.workTypeId, level:2}));
+      renderVendorList();
+      saveMaster();
+    });
+    $l.querySelectorAll('[data-vc-sub-all]').forEach(btn=>btn.onclick=()=>{
+      const v = vendor(btn.dataset.vcSubAll);
+      v.capableCombos = v.capableCombos||[];
+      state.templates.forEach(t=>{
+        if(!vendorSkillEntryFor(v, t)) v.capableCombos.push({equipmentTypeId:t.equipmentTypeId||null, workTypeId:t.workTypeId, level:1});
+      });
       renderVendorList();
       saveMaster();
     });
     $l.querySelectorAll('[data-vc-clear]').forEach(btn=>btn.onclick=()=>{
-      const v = state.vendors.find(v=>v.id===btn.dataset.vcClear);
+      const v = vendor(btn.dataset.vcClear);
       v.capableCombos = [];
       renderVendorList();
       saveMaster();
