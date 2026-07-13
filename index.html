@@ -300,6 +300,20 @@
     {name:'ブライト・オレンジ', hex:'#FB8C00'},
     {name:'ソフト・バイオレット', hex:'#9575CD'},
   ];
+  const WORK_DURATION_RULES = {
+    '新規設置': {duration:1, unit:'時間', count:2},
+    '搬出撤去': {duration:1, unit:'時間', count:2},
+    '廃棄': {duration:1, unit:'時間', count:2},
+    '棚取り付け': {duration:1, unit:'時間', count:2},
+    'その他残工事': {duration:1, unit:'時間', count:2},
+    '入替え': {duration:2, unit:'時間', count:2},
+    '修理': {duration:1, unit:'時間', count:1},
+    '給排水工事': {duration:1, unit:'時間', count:1},
+    '電気工事': {duration:1, unit:'時間', count:1},
+    'シンク穴開け': {duration:1, unit:'時間', count:1},
+    '板金加工': {duration:1, unit:'時間', count:1},
+    'コーキング': {duration:1, unit:'時間', count:1},
+  };
   let state = { equipmentTypes: [], workTypes: [], specialWorks: [], workers: [], vendors: [], disposalSites: [], projects: [], templates: [], calendars: [] };
   let tab = 'calendar';
   let calMonth = new Date(); calMonth.setDate(1);
@@ -770,6 +784,7 @@
 
       <div class="ss-card">
         <div class="ss-card-title">工事内容テンプレート <small>機器×作業内容ごとの標準時間・標準人数。AIチャットの提案にも使われます</small></div>
+        <button class="ss-btn ghost small" id="tp-bulk-create" style="margin-bottom:10px;">作業内容の基本ルールから一括登録</button>
         <div class="ss-row">
           <select id="tp-eq">${state.equipmentTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
           <select id="tp-wt">${state.workTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
@@ -855,6 +870,29 @@
     });
 
     renderTemplateList();
+    document.getElementById('tp-bulk-create').onclick = async ()=>{
+      const matched = state.workTypes.filter(wt=>WORK_DURATION_RULES[wt.name]);
+      const unmatched = state.workTypes.filter(wt=>!WORK_DURATION_RULES[wt.name]);
+      if(matched.length===0){ toast('ルールに一致する作業内容が登録されていません'); return; }
+      if(!confirm(`登録済みの機器種類 × 作業内容ルールに一致する組み合わせ（最大${state.equipmentTypes.length * matched.length}件）でテンプレートを作成・上書きします。よろしいですか？`)) return;
+      let created=0, updated=0;
+      state.equipmentTypes.forEach(eq=>{
+        matched.forEach(wt=>{
+          const rule = WORK_DURATION_RULES[wt.name];
+          const existing = findTemplate(eq.id, wt.id);
+          if(existing){
+            existing.durationValue = rule.duration; existing.durationUnit = rule.unit; existing.requiredCount = rule.count;
+            updated++;
+          } else {
+            state.templates.push({id:uid('tp'), equipmentTypeId:eq.id, workTypeId:wt.id, durationValue:rule.duration, durationUnit:rule.unit, requiredCount:rule.count, specialWorkIds:[]});
+            created++;
+          }
+        });
+      });
+      await saveMaster();
+      renderTemplateList();
+      toast(`${created}件登録・${updated}件更新しました${unmatched.length?`（「${unmatched.map(w=>w.name).join('、')}」はルール対象外のためスキップ）`:''}`);
+    };
     document.getElementById('tp-add').onclick = async ()=>{
       const equipmentTypeId = document.getElementById('tp-eq').value;
       const workTypeId = document.getElementById('tp-wt').value;
@@ -2457,6 +2495,9 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
 【搬出・廃棄を伴う工事（入替え・廃棄・撤去など）の場合】
 現場での作業時間、廃棄場までの移動時間、廃棄場の営業時間、昼休憩を踏まえて、その日のうちに廃棄場への搬入が間に合うかを検討してください。間に合わない場合は、翌営業日以降に廃棄場へ搬入する前提で日程・注意事項を提案し、その判断理由を fields.logisticsNote に簡潔に記載してください（例：「〇〇廃棄場は17時閉場のため、作業完了が17時を過ぎる場合は翌営業日搬入としてください」）。判断材料が不足する場合は、その旨を質問してください。
 
+【階段作業について】
+搬入経路に階段がある、エレベーターが無い、階段での運搬になる、といった言及があった場合は fields.stairs を true にしてください。標準人数への+2名の加算はシステム側で自動的に行うため、あなたが人数を書き換える必要はありません。
+
 【重要】以下の場合は status を "ready" にする前に、必ず追加で1つずつ質問してください：
 - 登録済み人員が0人、またはユーザーが言及した担当者の名前が登録済み人員に見つからない場合 → 「今回担当される方のお名前を教えてください（複数可）」のように質問し、fields.newWorkerNames に名前の配列を入れてください。
 - 選択された機器種類×作業内容の組み合わせのテンプレートが登録済みテンプレートに存在しない場合 → 「標準的な作業時間と人数を教えてください（今後のテンプレートとして登録します）」のように質問し、fields.newTemplateDuration（数値）、fields.newTemplateUnit（"時間"か"日"）、fields.newTemplateCount（人数）を埋めてください。
@@ -2475,7 +2516,8 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
     "date": "YYYY-MM-DD または null",
     "refrigerant": true/false（冷媒工事の言及があるか）,
     "removal": true/false（搬出・撤去の言及があるか）,
-    "note": "階段あり、夜間のみ、等の特記事項。なければnull",
+    "stairs": true/false（階段作業の言及があるか。標準人数+2名は自動で行われます）,
+    "note": "夜間のみ、等の特記事項（階段作業は含めなくてよい）。なければnull",
     "newWorkerNames": ["担当者名", ...] または null,
     "newTemplateDuration": 数値 または null,
     "newTemplateUnit": "時間"または"日" または null,
@@ -2543,7 +2585,8 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
   function computeChatProposal(fields, namedWorkers){
     namedWorkers = namedWorkers || [];
     const tmpl = findTemplate(fields.equipmentTypeId, fields.workTypeId);
-    const requiredCount = fields.requiredCount || (tmpl ? tmpl.requiredCount : Math.max(2, namedWorkers.length));
+    let requiredCount = fields.requiredCount || (tmpl ? tmpl.requiredCount : Math.max(2, namedWorkers.length));
+    if(fields.stairs) requiredCount += 2;
     const start = fields.date || todayStr();
     let end = start;
     if(tmpl && tmpl.durationUnit==='日'){ end = addDays(start, Math.max(0, Math.ceil(tmpl.durationValue)-1)); }
@@ -2559,6 +2602,7 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
     const warnings = [];
     if(fields.refrigerant) warnings.push('冷媒工事の言及あり：冷媒資格者を含めて配置してください。');
     if(fields.removal) warnings.push('搬出・撤去あり：車両・台車の手配を忘れずに。');
+    if(fields.stairs) warnings.push('階段作業のため、通常より2名多く配置しています。');
     if(fields.note) warnings.push(fields.note);
     if(fields.logisticsNote) warnings.push(`🚚 ${fields.logisticsNote}`);
     if(shortage>0) warnings.push(`内部人員だけでは${shortage}名不足しています。外注の手配を検討してください。`);
