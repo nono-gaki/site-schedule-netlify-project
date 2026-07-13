@@ -156,6 +156,8 @@
   .ss-proposal-card{background:#fff;border:1px solid var(--amber);border-radius:10px;padding:12px 14px;align-self:flex-start;max-width:92%;}
   .ss-proposal-card .ptitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--navy);margin-bottom:6px;}
   .ss-typing{align-self:flex-start;color:var(--muted);font-size:12px;padding:4px 8px;}
+  .ss-quickreplies{align-self:flex-start;display:flex;flex-wrap:wrap;gap:4px;max-width:90%;margin-top:-4px;}
+  .ss-quickreplies .ss-chiptoggle{background:#fff;border-color:var(--teal);color:var(--teal);}
   .ss-cal-legend{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
   .ss-cal-legend-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
   .ss-cal-add-btn{width:27px;height:27px;border-radius:50%;border:1px dashed var(--line);background:#fff;color:var(--muted);font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;}
@@ -2509,16 +2511,26 @@
   function renderChatLog(){
     const $log = document.getElementById('chat-log');
     if(!$log) return;
-    $log.innerHTML = chatMessages.map(m=>{
+    let lastAiIdx = -1;
+    for(let i=chatMessages.length-1;i>=0;i--){ if(chatMessages[i].role==='ai'){ lastAiIdx=i; break; } }
+    $log.innerHTML = chatMessages.map((m,i)=>{
       if(m.role==='proposal') return renderProposalCardHtml(m.data);
       const cls = m.role==='user' ? 'user' : (m.role==='system' ? 'system' : 'ai');
-      return `<div class="ss-msg ${cls}">${m.text}</div>`;
+      const showQuickReplies = i===lastAiIdx && !chatBusy && (m.quickReplies||[]).length>0;
+      const quickRepliesHtml = showQuickReplies ? `<div class="ss-quickreplies">${m.quickReplies.map(q=>`<span class="ss-chiptoggle" data-quickreply="${encodeURIComponent(q)}">${q}</span>`).join('')}</div>` : '';
+      return `<div class="ss-msg ${cls}">${m.text}</div>${quickRepliesHtml}`;
     }).join('') + (chatBusy ? `<div class="ss-typing">AIが考えています…</div>` : '');
     $log.scrollTop = $log.scrollHeight;
     if(chatPendingProposal){
       const btn = document.getElementById('chat-confirm-proposal');
       if(btn) btn.onclick = ()=>confirmChatProposal(chatPendingProposal);
     }
+    $log.querySelectorAll('[data-quickreply]').forEach(chip=>chip.onclick=()=>{
+      const val = decodeURIComponent(chip.dataset.quickreply);
+      const $input = document.getElementById('chat-input');
+      $input.value = $input.value.trim() ? `${$input.value.trim()}、${val}` : val;
+      $input.focus();
+    });
   }
   async function buildChatSystemPrompt(){
     const eq = state.equipmentTypes.map(t=>({id:t.id,name:t.name}));
@@ -2570,15 +2582,18 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
 【機器種類を問わない作業内容について】
 作業内容が「修理」「給排水工事」「電気工事」「シンク穴開け」「板金加工」「コーキング」「棚取り付け」のいずれかの場合、機器種類は特定の機器と紐づかない単独の作業として扱ってください。ユーザーが対象機器を明言しない限り fields.equipmentTypeId は null のままにしてください（無理に機器種類を推測しないでください）。
 
-【重要】以下の場合は status を "ready" にする前に、必ず追加で1つずつ質問してください：
+【重要】以下の場合は status を "ready" にする前に、必ず追加で質問してください：
 - 登録済み人員が0人、またはユーザーが言及した担当者の名前が登録済み人員に見つからない場合 → 「今回担当される方のお名前を教えてください（複数可）」のように質問し、fields.newWorkerNames に名前の配列を入れてください。
 - 選択された機器種類×作業内容の組み合わせのテンプレートが登録済みテンプレートに存在しない場合 → 「標準的な作業時間と人数を教えてください（今後のテンプレートとして登録します）」のように質問し、fields.newTemplateDuration（数値）、fields.newTemplateUnit（"時間"か"日"）、fields.newTemplateCount（人数）を埋めてください。
 これらの確認が済んでいない状態では status を "ask" のままにしてください。ユーザーが「わからない」「後で」など回答をスキップする意思を示した場合は、その項目は諦めて ready に進めてください。
 
+【質問の仕方】未確定の項目が複数ある場合は、1つずつ聞き返さず、まとめて1回のreplyで箇条書きなどにして質問してください（例：「①現場名を教えてください　②担当者のお名前を教えてください」）。ユーザーは複数の質問にまとめて1回で回答することがあるので、その回答から複数のfieldsを同時に埋めてください。
+
 必ず次のJSON形式のみで回答してください（説明文やコードフェンスは一切不要、JSONのみ）:
 {
   "status": "ask" または "ready",
-  "reply": "ユーザーに見せる短い日本語の返信。ask の場合は次に確認すべき質問を1つだけ、ready の場合は簡潔な確認メッセージ",
+  "reply": "ユーザーに見せる短い日本語の返信。ask の場合は未確定の項目をまとめて質問し、ready の場合は簡潔な確認メッセージ",
+  "quickReplies": ["選択肢1", "選択肢2", ...] または null,
   "fields": {
     "name": "現場名・物件名 または null",
     "address": "住所や地域 または null",
@@ -2597,7 +2612,7 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
     "logisticsNote": "廃棄場の営業時間・移動時間を踏まえた判断や注意事項。該当なければnull"
   }
 }
-一度に聞く質問は1つだけにしてください。これまでの会話で判明している項目は fields に必ず引き継いでください。`;
+quickReplies には、status が "ask" の時のみ、ユーザーがタップするだけで回答できる短い選択肢を入れてください（機器種類名、作業内容名、登録済み人員名、「はい」「いいえ」など具体的な文字列。自由記述でしか答えられない質問しかない場合はnullまたは空配列にしてください）。これまでの会話で判明している項目は fields に必ず引き継いでください。`;
   }
   async function sendChatMessage(){
     const $input = document.getElementById('chat-input');
@@ -2623,7 +2638,8 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
       const prevLogisticsNote = chatFields.logisticsNote || null;
       chatFields = Object.assign({}, chatFields, parsed.fields||{});
       chatBusy = false;
-      chatMessages.push({role:'ai', text: parsed.reply || '...'});
+      const quickReplies = (parsed.status==='ask' && Array.isArray(parsed.quickReplies)) ? parsed.quickReplies.filter(Boolean) : [];
+      chatMessages.push({role:'ai', text: parsed.reply || '...', quickReplies});
       if(chatFields.logisticsNote && chatFields.logisticsNote!==prevLogisticsNote){
         chatMessages.push({role:'system', text:`🚚 ${chatFields.logisticsNote}`});
       }
