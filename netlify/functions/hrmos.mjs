@@ -60,10 +60,10 @@ export default async (req) => {
 
   try {
     // 1. Secret KeyでBasic認証してTokenを取得
-    const basicAuth = Buffer.from(secretKey).toString('base64');
+    // HRMOSの「Secret Key」は既にbase64エンコード済みの値のため、そのままBasic値として使う
     const tokenRes = await fetch(`${base}/authentication/token`, {
       method: 'GET',
-      headers: { Authorization: `Basic ${basicAuth}` },
+      headers: { Authorization: `Basic ${secretKey}` },
     });
     if (!tokenRes.ok) {
       const detail = await tokenRes.text();
