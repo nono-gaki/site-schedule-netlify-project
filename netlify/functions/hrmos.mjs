@@ -8,29 +8,7 @@
 //   2. 以降のリクエストは Authorization: Token <token> ヘッダーで認証
 //   3. 用途に応じて work_outputs/monthly/{month} または users を取得（いずれもページネーションあり）
 
-async function fetchPaginated(base, token, path) {
-  let items = [];
-  let page = 1;
-  const limit = 100;
-  while (true) {
-    const res = await fetch(`${base}${path}${path.includes('?') ? '&' : '?'}limit=${limit}&page=${page}`, {
-      method: 'GET',
-      headers: { Authorization: `Token ${token}` },
-    });
-    if (!res.ok) {
-      const detail = await res.text();
-      const err = new Error('HRMOS data request failed');
-      err.status = res.status;
-      err.detail = detail;
-      throw err;
-    }
-    const chunk = await res.json();
-    items = items.concat(chunk);
-    if (!Array.isArray(chunk) || chunk.length < limit || page > 50) break;
-    page++;
-  }
-  return items;
-}
+import { getHrmosToken, fetchPaginated } from './_lib/hrmos-client.mjs';
 
 export default async (req) => {
   if (req.method !== 'GET') {
@@ -59,22 +37,8 @@ export default async (req) => {
   const base = `https://ieyasu.co/api/${companyUrl}/v1`;
 
   try {
-    // 1. Secret KeyでBasic認証してTokenを取得
-    // HRMOSの「Secret Key」は既にbase64エンコード済みの値のため、そのままBasic値として使う
-    const tokenRes = await fetch(`${base}/authentication/token`, {
-      method: 'GET',
-      headers: { Authorization: `Basic ${secretKey}` },
-    });
-    if (!tokenRes.ok) {
-      const detail = await tokenRes.text();
-      return new Response(JSON.stringify({ error: 'HRMOS token request failed', status: tokenRes.status, detail }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    const { token } = await tokenRes.json();
+    const token = await getHrmosToken(secretKey, base);
 
-    // 2. 用途に応じてデータを取得
     if (resource === 'users') {
       const users = await fetchPaginated(base, token, '/users');
       return new Response(JSON.stringify({ count: users.length, users }), {
