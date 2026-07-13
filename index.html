@@ -1016,17 +1016,11 @@
       $result.innerHTML = `<div class="ss-alert">⚠ 通信エラーが発生しました：${String(err)}</div>`;
     }
   }
-  function hrmosWorkedMinutes(rec){
-    const toMin = (t)=>{ if(!t) return null; const [h,m] = t.split(':').map(Number); return h*60+m; };
-    const start = toMin(rec.start_at), end = toMin(rec.end_at);
-    if(start==null || end==null) return 0;
-    let mins = end - start;
-    if(mins < 0) mins += 24*60;
-    for(let i=1;i<=3;i++){
-      const bs = toMin(rec[`break_${i}_start_at`]), be = toMin(rec[`break_${i}_end_at`]);
-      if(bs!=null && be!=null){ let b = be-bs; if(b<0) b+=24*60; mins -= b; }
-    }
-    return Math.max(0, mins);
+  function hrmosOvertimeMinutes(rec){
+    const t = rec.total_over_work_time;
+    if(!t) return 0;
+    const [h,m] = String(t).split(':').map(Number);
+    return (h||0)*60 + (m||0);
   }
   async function fetchHrmosData(){
     const month = document.getElementById('hrmos-month').value;
@@ -1043,15 +1037,15 @@
       const byName = {};
       (data.records||[]).forEach(rec=>{
         const name = rec.full_name; if(!name) return;
-        byName[name] = (byName[name]||0) + hrmosWorkedMinutes(rec);
+        byName[name] = (byName[name]||0) + hrmosOvertimeMinutes(rec);
       });
       const rows = Object.entries(byName).map(([name,mins])=>({name, hours: Math.round(mins/6)/10}));
       const sample = (data.records||[])[0];
       $result.innerHTML = `
-        <div class="ss-hint" style="margin-bottom:8px;">${data.count||0}件の日次データを集計しました。以下は「月間の総稼働時間」の参考値です（残業の定義はHRMOS側の設定によるため、実際の残業時間とは異なる場合があります）。氏名が完全一致する人員にのみ反映できます。</div>
+        <div class="ss-hint" style="margin-bottom:8px;">${data.count||0}件の日次データを集計しました。以下はHRMOSが算出した「月間の総残業時間（total_over_work_time）」です。氏名が完全一致する人員にのみ反映できます。</div>
         ${rows.length===0 ? '<div class="ss-empty">対象月のデータがありませんでした。</div>' : `
         <div class="ss-table-wrap"><table class="ss-table">
-          <tr><th>氏名（HRMOS）</th><th>月間稼働時間</th><th>一致する人員</th><th></th></tr>
+          <tr><th>氏名（HRMOS）</th><th>月間残業時間</th><th>一致する人員</th><th></th></tr>
           ${rows.map(r=>{
             const match = state.workers.find(w=>w.name===r.name);
             return `<tr>
