@@ -60,7 +60,7 @@ export default async (req) => {
 
   try {
     // 1. Secret KeyでBasic認証してTokenを取得
-    const basicAuth = Buffer.from(`${secretKey}:`).toString('base64');
+    const basicAuth = Buffer.from(secretKey).toString('base64');
     const tokenRes = await fetch(`${base}/authentication/token`, {
       method: 'GET',
       headers: { Authorization: `Basic ${basicAuth}` },
