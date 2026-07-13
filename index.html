@@ -265,7 +265,7 @@
     #imgviewer-overlay{align-items:center;justify-content:center;}
     .ss-chat-wrap{height:72vh;}
     .ss-chat-input-row{flex-wrap:wrap;}
-    .ss-chat-input-row textarea{flex:1 1 100%;}
+    .ss-chat-input-row textarea{flex:1 1 100%;min-height:64px;font-size:16px;}
     .ss-chat-input-row button{flex:1;}
     .ss-msg{max-width:92%;}
     .ss-worker-card .top{gap:6px;}
@@ -412,7 +412,10 @@
   }
 
   async function loadAll(){
-    const master = await apiGet('master-data-v4').catch(()=>null);
+    const [master, projects] = await Promise.all([
+      apiGet('master-data-v4').catch(()=>null),
+      apiGet('projects-v4').catch(()=>null),
+    ]);
     if(master){
       state.equipmentTypes = master.equipmentTypes || [];
       state.workTypes = master.workTypes || [];
@@ -444,7 +447,6 @@
       await saveMaster();
     }
     state.calendars.forEach(c=>{ if(!(c.id in calVisible)) calVisible[c.id]=true; });
-    const projects = await apiGet('projects-v4').catch(()=>null);
     if(projects){
       state.projects = projects.projects || [];
     } else {
@@ -471,9 +473,12 @@
   }
   function levelLabel(n){ return n>=2 ? 'メイン' : '補助'; }
   function skillFor(w, equipmentTypeId, workTypeId){
-    const entries = (w.skills||[]).filter(s=>s.equipmentTypeId===equipmentTypeId && s.workTypeId===workTypeId);
+    const entries = (w.skills||[]).filter(s=>(s.equipmentTypeId||null)===(equipmentTypeId||null) && s.workTypeId===workTypeId);
     if(entries.length===0) return 0;
     return Math.max(...entries.map(e=>e.level));
+  }
+  function skillEntryFor(w, tpl){
+    return (w.skills||[]).find(s=>(s.equipmentTypeId||null)===(tpl.equipmentTypeId||null) && s.workTypeId===tpl.workTypeId);
   }
   function suggest({equipmentTypeId, workTypeId, requiredLevel, start, end, requiredCount}, excludeProjectId, excludeWorkerIds){
     excludeWorkerIds = excludeWorkerIds || [];
@@ -497,8 +502,11 @@
     const shortage = Math.max(0, requiredCount - picked.length);
     return {picked, shortage, candidates};
   }
+  function vendorHasCombo(v, equipmentTypeId, workTypeId){
+    return (v.capableCombos||[]).some(c=>(c.equipmentTypeId||null)===(equipmentTypeId||null) && c.workTypeId===workTypeId);
+  }
   function vendorsForCombo(equipmentTypeId, workTypeId){
-    return state.vendors.filter(v => (v.equipmentTypeIds||[]).includes(equipmentTypeId) && (v.workTypeIds||[]).includes(workTypeId));
+    return state.vendors.filter(v => vendorHasCombo(v, equipmentTypeId, workTypeId));
   }
   function findTemplate(eq, wt){ return state.templates.find(t=>(t.equipmentTypeId||null)===(eq||null) && t.workTypeId===wt); }
   function addDays(dateStr, n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return fmtDate(d); }
@@ -639,7 +647,7 @@
               <span class="ss-dot" style="background:${eventColor(p)}"></span>
               <div style="flex:1;">
                 <b>${p.startTime?(p.startTime+' '):''}${p.name}</b> <span class="mono" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</span><br>
-                <span style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}${(p.vendorEntries||[]).length?` + 外注:${p.vendorEntries.map(v=>v.vendorName).join('、')}`:''}</span>
+                <span style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}${(p.vendorEntries||[]).length?` + 外注:${p.vendorEntries.map(v=>`${v.vendorName}${(v.count||1)>1?`×${v.count}`:''}`).join('、')}`:''}</span>
               </div>
             </div>
           `).join('')}
@@ -651,12 +659,12 @@
   function chipTypeConfig(type){
     if(type==='eq') return { list: state.equipmentTypes, cleanup:(id)=>{
       state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.equipmentTypeId!==id); });
-      state.vendors.forEach(v=>{ v.equipmentTypeIds=(v.equipmentTypeIds||[]).filter(e=>e!==id); });
+      state.vendors.forEach(v=>{ v.capableCombos=(v.capableCombos||[]).filter(c=>c.equipmentTypeId!==id); });
       state.templates = state.templates.filter(t=>t.equipmentTypeId!==id);
     }};
     if(type==='wt') return { list: state.workTypes, cleanup:(id)=>{
       state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.workTypeId!==id); });
-      state.vendors.forEach(v=>{ v.workTypeIds=(v.workTypeIds||[]).filter(e=>e!==id); });
+      state.vendors.forEach(v=>{ v.capableCombos=(v.capableCombos||[]).filter(c=>c.workTypeId!==id); });
       state.templates = state.templates.filter(t=>t.workTypeId!==id);
     }};
     return { list: state.specialWorks, cleanup:(id)=>{
@@ -836,22 +844,19 @@
     attachChipInteractions('ss-eq', 'eq');
     document.getElementById('add-eq').onclick = async()=>{
       const v = document.getElementById('new-eq').value.trim(); if(!v) return;
-      state.equipmentTypes.push({id:uid('eq'),name:v}); await saveMaster(); render();
-    };
+      state.equipmentTypes.push({id:uid('eq'),name:v}); render(); saveMaster();    };
 
     document.getElementById('ss-wt').innerHTML = renderChipsHtml('wt');
     attachChipInteractions('ss-wt', 'wt');
     document.getElementById('add-wt').onclick = async()=>{
       const v = document.getElementById('new-wt').value.trim(); if(!v) return;
-      state.workTypes.push({id:uid('wt'),name:v}); await saveMaster(); render();
-    };
+      state.workTypes.push({id:uid('wt'),name:v}); render(); saveMaster();    };
 
     document.getElementById('ss-sw').innerHTML = renderChipsHtml('sw');
     attachChipInteractions('ss-sw', 'sw');
     document.getElementById('add-sw').onclick = async()=>{
       const v = document.getElementById('new-sw').value.trim(); if(!v) return;
-      state.specialWorks.push({id:uid('sw'),name:v}); await saveMaster(); render();
-    };
+      state.specialWorks.push({id:uid('sw'),name:v}); render(); saveMaster();    };
 
     renderDisposalList();
     document.getElementById('add-disposal').onclick = async()=>{
@@ -861,8 +866,7 @@
       const closeTime = document.getElementById('new-disposal-close').value || '17:00';
       if(!name || !address){ toast('廃棄場名と住所を入力してください'); return; }
       state.disposalSites.push({id:uid('ds'), name, address, openTime, closeTime});
-      await saveMaster(); render();
-    };
+      render(); saveMaster();    };
     document.querySelectorAll('#tp-sw [data-tp-sw]').forEach(chip=>chip.onclick=()=>{
       const id = chip.dataset.tpSw;
       if(tpSelectedSpecialWorkIds.includes(id)) tpSelectedSpecialWorkIds = tpSelectedSpecialWorkIds.filter(x=>x!==id);
@@ -932,8 +936,7 @@
     document.getElementById('ss-add-worker').onclick = async()=>{
       const name = prompt('氏名を入力してください'); if(!name) return;
       state.workers.push({id:uid('w'), name, type:'社員', skills:[], overtimeHours:0, maxOvertimeHours:45});
-      await saveMaster(); render();
-    };
+      render(); saveMaster();    };
     document.getElementById('hrmos-fetch').onclick = fetchHrmosData;
     document.getElementById('hrmos-import-users').onclick = fetchHrmosUsers;
   }
@@ -1056,8 +1059,7 @@
     `).join('');
     $d.querySelectorAll('[data-del-disposal]').forEach(b=>b.onclick=async()=>{
       state.disposalSites = state.disposalSites.filter(s=>s.id!==b.dataset.delDisposal);
-      await saveMaster(); renderDisposalList();
-    });
+      renderDisposalList(); saveMaster();    });
   }
   function renderTemplateList(){
     const $t = document.getElementById('tp-list');
@@ -1080,8 +1082,7 @@
     </table></div>`;
     $t.querySelectorAll('[data-del-tp]').forEach(b=>b.onclick=async()=>{
       state.templates = state.templates.filter(t=>t.id!==b.dataset.delTp);
-      await saveMaster(); renderTemplateList();
-    });
+      renderTemplateList(); saveMaster();    });
     $t.querySelectorAll('[data-tpl]').forEach(inp=>{
       const evt = inp.tagName==='SELECT' ? 'change' : 'change';
       inp.addEventListener(evt, async()=>{
@@ -1091,8 +1092,7 @@
         if(field==='durationValue'||field==='requiredCount') tpl[field] = Number(inp.value)||0;
         else if(field==='equipmentTypeId') tpl[field] = inp.value || null;
         else tpl[field] = inp.value;
-        await saveMaster(); renderTemplateList();
-      });
+        renderTemplateList(); saveMaster();      });
     });
     $t.querySelectorAll('[data-tpl-sw]').forEach(chip=>chip.onclick=async()=>{
       const [tplId, swId] = chip.dataset.tplSw.split('|');
@@ -1101,8 +1101,7 @@
       tpl.specialWorkIds = tpl.specialWorkIds||[];
       if(tpl.specialWorkIds.includes(swId)) tpl.specialWorkIds = tpl.specialWorkIds.filter(x=>x!==swId);
       else tpl.specialWorkIds.push(swId);
-      await saveMaster(); renderTemplateList();
-    });
+      renderTemplateList(); saveMaster();    });
     attachTemplateRowDrag();
   }
   function attachTemplateRowDrag(){
@@ -1165,10 +1164,17 @@
           <div class="ss-add-skill-form" style="flex-direction:column;align-items:stretch;">
             ${state.templates.length===0 ? '<span class="ss-empty" style="padding:0;">工事内容テンプレートが未登録です。先に「工事内容テンプレート」から登録してください。</span>' : `
             <div>
-              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">メイン</div>
-              <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${skillFor(w,t.equipmentTypeId,t.workTypeId)>=2?'on':''}" data-skill-main="${w.id}|${t.equipmentTypeId}|${t.workTypeId}">${templateLabel(t)}</span>`).join('')}</div>
-              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px;">補助</div>
-              <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${skillFor(w,t.equipmentTypeId,t.workTypeId)>=1?'on':''}" data-skill-sub="${w.id}|${t.equipmentTypeId}|${t.workTypeId}">${templateLabel(t)}</span>`).join('')}</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">メイン</span>
+                <button type="button" class="ss-btn ghost small" data-skill-main-all="${w.id}" style="padding:2px 8px;font-size:11px;">全選択</button>
+              </div>
+              <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${skillFor(w,t.equipmentTypeId,t.workTypeId)>=2?'on':''}" data-skill-main="${w.id}|${t.id}">${templateLabel(t)}</span>`).join('')}</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 4px;">
+                <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">補助</span>
+                <button type="button" class="ss-btn ghost small" data-skill-sub-all="${w.id}" style="padding:2px 8px;font-size:11px;">全選択</button>
+              </div>
+              <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${skillFor(w,t.equipmentTypeId,t.workTypeId)>=1?'on':''}" data-skill-sub="${w.id}|${t.id}">${templateLabel(t)}</span>`).join('')}</div>
+              <button type="button" class="ss-btn ghost small" data-skill-clear="${w.id}" style="margin-top:8px;">すべて解除</button>
             </div>`}
           </div>
         ` : ''}
@@ -1184,42 +1190,43 @@
       } else {
         w[inp.dataset.f] = inp.dataset.f==='type' ? inp.value : (Number(inp.value)||0);
       }
-      await saveMaster(); renderWorkerList();
-    });
+      renderWorkerList(); saveMaster();    });
     $l.querySelectorAll('[data-del-w]').forEach(b=>b.onclick=async()=>{
       if(!confirm('この人員を削除しますか？')) return;
       state.workers = state.workers.filter(w=>w.id!==b.dataset.delW);
-      await saveMaster(); renderWorkerList();
-    });
+      renderWorkerList(); saveMaster();    });
     $l.querySelectorAll('[data-del-skill]').forEach(b=>b.onclick=async()=>{
       const [wid,sid] = b.dataset.delSkill.split('|');
       const w = worker(wid); w.skills = (w.skills||[]).filter(s=>s.id!==sid);
-      await saveMaster(); renderWorkerList();
-    });
+      renderWorkerList(); saveMaster();    });
     $l.querySelectorAll('[data-add-skill]').forEach(b=>b.onclick=()=>{
       skillFormOpenWorkerId = (skillFormOpenWorkerId===b.dataset.addSkill)?null:b.dataset.addSkill;
       renderWorkerList();
     });
     $l.querySelectorAll('[data-skill-main]').forEach(chip=>chip.onclick=()=>{
-      const [wid, eqId, wtId] = chip.dataset.skillMain.split('|');
+      const [wid, tplId] = chip.dataset.skillMain.split('|');
       const w = worker(wid);
+      const tpl = state.templates.find(t=>t.id===tplId);
+      if(!tpl) return;
       w.skills = w.skills||[];
-      const entry = w.skills.find(s=>s.equipmentTypeId===eqId && s.workTypeId===wtId);
+      const entry = skillEntryFor(w, tpl);
       if(entry && entry.level>=2){
         w.skills = w.skills.filter(s=>s!==entry);
       } else if(entry){
         entry.level = 2;
       } else {
-        w.skills.push({id:uid('sk'), equipmentTypeId:eqId, workTypeId:wtId, level:2});
+        w.skills.push({id:uid('sk'), equipmentTypeId:tpl.equipmentTypeId||null, workTypeId:tpl.workTypeId, level:2});
       }
       renderWorkerList();
       saveMaster();
     });
     $l.querySelectorAll('[data-skill-sub]').forEach(chip=>chip.onclick=()=>{
-      const [wid, eqId, wtId] = chip.dataset.skillSub.split('|');
+      const [wid, tplId] = chip.dataset.skillSub.split('|');
       const w = worker(wid);
+      const tpl = state.templates.find(t=>t.id===tplId);
+      if(!tpl) return;
       w.skills = w.skills||[];
-      const entry = w.skills.find(s=>s.equipmentTypeId===eqId && s.workTypeId===wtId);
+      const entry = skillEntryFor(w, tpl);
       if(entry && entry.level>=2){
         toast('メインを解除すると補助も解除されます');
         return;
@@ -1227,8 +1234,29 @@
       if(entry){
         w.skills = w.skills.filter(s=>s!==entry);
       } else {
-        w.skills.push({id:uid('sk'), equipmentTypeId:eqId, workTypeId:wtId, level:1});
+        w.skills.push({id:uid('sk'), equipmentTypeId:tpl.equipmentTypeId||null, workTypeId:tpl.workTypeId, level:1});
       }
+      renderWorkerList();
+      saveMaster();
+    });
+    $l.querySelectorAll('[data-skill-main-all]').forEach(btn=>btn.onclick=()=>{
+      const w = worker(btn.dataset.skillMainAll);
+      w.skills = state.templates.map(t=>({id:uid('sk'), equipmentTypeId:t.equipmentTypeId||null, workTypeId:t.workTypeId, level:2}));
+      renderWorkerList();
+      saveMaster();
+    });
+    $l.querySelectorAll('[data-skill-sub-all]').forEach(btn=>btn.onclick=()=>{
+      const w = worker(btn.dataset.skillSubAll);
+      w.skills = w.skills||[];
+      state.templates.forEach(t=>{
+        if(!skillEntryFor(w, t)) w.skills.push({id:uid('sk'), equipmentTypeId:t.equipmentTypeId||null, workTypeId:t.workTypeId, level:1});
+      });
+      renderWorkerList();
+      saveMaster();
+    });
+    $l.querySelectorAll('[data-skill-clear]').forEach(btn=>btn.onclick=()=>{
+      const w = worker(btn.dataset.skillClear);
+      w.skills = [];
       renderWorkerList();
       saveMaster();
     });
@@ -1255,8 +1283,8 @@
     renderVendorList();
     document.getElementById('v-add').onclick = async()=>{
       const name = prompt('外注先の会社名・担当者名を入力してください'); if(!name) return;
-      state.vendors.push({id:uid('v'), name, equipmentTypeIds:[], workTypeIds:[], contact:'', note:''});
-      await saveMaster(); renderVendors();
+      state.vendors.push({id:uid('v'), name, capableCombos:[], contact:'', note:''});
+      renderVendors(); saveMaster();
     };
     renderVendorLog();
     ['vlog-start','vlog-end','vlog-vendor'].forEach(id=>{
@@ -1296,32 +1324,48 @@
           <input type="text" data-v="${v.id}" data-f="note" value="${v.note||''}" placeholder="単価目安・備考" style="width:150px;">
           <button class="ss-x" data-del-v="${v.id}">×</button>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">機器種類</div>
-        <div>${state.equipmentTypes.map(t=>`<span class="ss-chiptoggle ${((v.equipmentTypeIds||[]).includes(t.id))?'on':''}" data-vc-eq="${v.id}|${t.id}">${t.name}</span>`).join('')}</div>
-        <div style="font-size:11px;color:var(--muted);margin:6px 0 3px;">作業内容</div>
-        <div>${state.workTypes.map(t=>`<span class="ss-chiptoggle ${((v.workTypeIds||[]).includes(t.id))?'on':''}" data-vc-wt="${v.id}|${t.id}">${t.name}</span>`).join('')}</div>
+        ${state.templates.length===0 ? '<span class="ss-empty" style="padding:0;">工事内容テンプレートが未登録です。先に「工事内容テンプレート」から登録してください。</span>' : `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11px;color:var(--muted);">対応可能な工事</span>
+          <span>
+            <button type="button" class="ss-btn ghost small" data-vc-all="${v.id}" style="padding:2px 8px;font-size:11px;">全選択</button>
+            <button type="button" class="ss-btn ghost small" data-vc-clear="${v.id}" style="padding:2px 8px;font-size:11px;">全解除</button>
+          </span>
+        </div>
+        <div>${state.templates.map(t=>`<span class="ss-chiptoggle ${vendorHasCombo(v,t.equipmentTypeId,t.workTypeId)?'on':''}" data-vc-tpl="${v.id}|${t.id}">${templateLabel(t)}</span>`).join('')}</div>
+        `}
       </div>
     `).join('');
-    $l.querySelectorAll('[data-f]').forEach(inp=>inp.onchange=async()=>{
-      const v = state.vendors.find(v=>v.id===inp.dataset.v); v[inp.dataset.f]=inp.value; await saveMaster();
+    $l.querySelectorAll('[data-f]').forEach(inp=>inp.onchange=()=>{
+      const v = state.vendors.find(v=>v.id===inp.dataset.v); v[inp.dataset.f]=inp.value; saveMaster();
     });
-    $l.querySelectorAll('[data-del-v]').forEach(b=>b.onclick=async()=>{
+    $l.querySelectorAll('[data-del-v]').forEach(b=>b.onclick=()=>{
       if(!confirm('削除しますか？')) return;
-      state.vendors = state.vendors.filter(v=>v.id!==b.dataset.delV); await saveMaster(); renderVendors();
+      state.vendors = state.vendors.filter(v=>v.id!==b.dataset.delV); renderVendors(); saveMaster();
     });
-    $l.querySelectorAll('[data-vc-eq]').forEach(chip=>chip.onclick=()=>{
-      const [vid,eid] = chip.dataset.vcEq.split('|');
-      const v = state.vendors.find(v=>v.id===vid); v.equipmentTypeIds = v.equipmentTypeIds||[];
-      if(v.equipmentTypeIds.includes(eid)) v.equipmentTypeIds = v.equipmentTypeIds.filter(x=>x!==eid);
-      else v.equipmentTypeIds.push(eid);
+    $l.querySelectorAll('[data-vc-tpl]').forEach(chip=>chip.onclick=()=>{
+      const [vid, tplId] = chip.dataset.vcTpl.split('|');
+      const v = state.vendors.find(v=>v.id===vid);
+      const tpl = state.templates.find(t=>t.id===tplId);
+      if(!v || !tpl) return;
+      v.capableCombos = v.capableCombos||[];
+      if(vendorHasCombo(v, tpl.equipmentTypeId, tpl.workTypeId)){
+        v.capableCombos = v.capableCombos.filter(c=>!((c.equipmentTypeId||null)===(tpl.equipmentTypeId||null) && c.workTypeId===tpl.workTypeId));
+      } else {
+        v.capableCombos.push({equipmentTypeId: tpl.equipmentTypeId||null, workTypeId: tpl.workTypeId});
+      }
       renderVendorList();
       saveMaster();
     });
-    $l.querySelectorAll('[data-vc-wt]').forEach(chip=>chip.onclick=()=>{
-      const [vid,wid] = chip.dataset.vcWt.split('|');
-      const v = state.vendors.find(v=>v.id===vid); v.workTypeIds = v.workTypeIds||[];
-      if(v.workTypeIds.includes(wid)) v.workTypeIds = v.workTypeIds.filter(x=>x!==wid);
-      else v.workTypeIds.push(wid);
+    $l.querySelectorAll('[data-vc-all]').forEach(btn=>btn.onclick=()=>{
+      const v = state.vendors.find(v=>v.id===btn.dataset.vcAll);
+      v.capableCombos = state.templates.map(t=>({equipmentTypeId:t.equipmentTypeId||null, workTypeId:t.workTypeId}));
+      renderVendorList();
+      saveMaster();
+    });
+    $l.querySelectorAll('[data-vc-clear]').forEach(btn=>btn.onclick=()=>{
+      const v = state.vendors.find(v=>v.id===btn.dataset.vcClear);
+      v.capableCombos = [];
       renderVendorList();
       saveMaster();
     });
@@ -1664,7 +1708,7 @@
     if(!p) return '';
     const color = eventColor(p);
     const participantNames = (p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean);
-    const vendorNames = (p.vendorEntries||[]).map(v=>`${v.vendorName}（外注）`);
+    const vendorNames = (p.vendorEntries||[]).map(v=>`${v.vendorName}${(v.count||1)>1?`×${v.count}名`:''}（外注）`);
     const allParticipants = [...participantNames, ...vendorNames];
     return `
     <div class="ss-modal-overlay" id="detail-overlay">
@@ -2072,9 +2116,10 @@
 
         <div class="ss-modal-section">
           <div class="ss-subhead" style="margin-top:0;">外注</div>
-          <div id="ev-vendor-list">${(d.vendorEntries||[]).map((v,i)=>`<span class="ss-vendor-tag">${v.vendorName} ${yen(v.amount)} <button class="ss-x" data-del-ve="${i}" style="padding:0;">×</button></span>`).join('') || ''}</div>
+          <div id="ev-vendor-list">${(d.vendorEntries||[]).map((v,i)=>`<span class="ss-vendor-tag">${v.vendorName}${(v.count||1)>1?`×${v.count}名`:''} ${yen(v.amount)} <button class="ss-x" data-del-ve="${i}" style="padding:0;">×</button></span>`).join('') || ''}</div>
           <div class="ss-row" style="margin-top:6px;">
             <input type="text" id="ev-ve-name" placeholder="業者名" list="ev-vendor-datalist">
+            <input type="number" id="ev-ve-count" min="1" value="1" placeholder="人数" style="max-width:80px;">
             <input type="number" id="ev-ve-amount" placeholder="金額">
             <button class="ss-btn ghost small" id="ev-ve-add" style="flex:0 0 auto;">追加</button>
           </div>
@@ -2354,11 +2399,12 @@
     };
     document.getElementById('ev-ve-add').onclick = ()=>{
       const vname = document.getElementById('ev-ve-name').value.trim();
+      const vcount = Math.max(1, Number(document.getElementById('ev-ve-count').value)||1);
       const vamount = Number(document.getElementById('ev-ve-amount').value)||0;
       if(!vname) return;
       syncEvFormToData();
       d.vendorEntries = d.vendorEntries||[];
-      d.vendorEntries.push({vendorName:vname, amount:vamount, note:''});
+      d.vendorEntries.push({vendorName:vname, count:vcount, amount:vamount, note:''});
       rerenderEventModal();
     };
     document.querySelectorAll('[data-del-ve]').forEach(b=>b.onclick=()=>{
