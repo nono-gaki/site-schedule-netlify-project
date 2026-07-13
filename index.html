@@ -803,6 +803,9 @@
           <button class="ss-btn teal small" id="hrmos-fetch" style="flex:0 0 auto;">取得する</button>
         </div>
         <div id="hrmos-result" style="margin-top:10px;"></div>
+        <div class="ss-subhead">人員の取り込み</div>
+        <button class="ss-btn ghost small" id="hrmos-import-users">HRMOSから人員を取り込む</button>
+        <div id="hrmos-users-result" style="margin-top:10px;"></div>
       </div>
 
       <div class="ss-card">
@@ -880,6 +883,50 @@
       await saveMaster(); render();
     };
     document.getElementById('hrmos-fetch').onclick = fetchHrmosData;
+    document.getElementById('hrmos-import-users').onclick = fetchHrmosUsers;
+  }
+  async function fetchHrmosUsers(){
+    const $result = document.getElementById('hrmos-users-result');
+    $result.innerHTML = `<div class="ss-empty">取得中…</div>`;
+    try{
+      const res = await fetch('/.netlify/functions/hrmos?resource=users');
+      const data = await res.json();
+      if(!res.ok || data.error){
+        $result.innerHTML = `<div class="ss-alert">⚠ 取得に失敗しました：${(data.error||'')} ${data.detail?`<br><span class="mono" style="font-size:11px;">${String(data.detail).slice(0,300)}</span>`:''}</div>`;
+        return;
+      }
+      const names = (data.users||[]).map(u=>({
+        name: `${u.last_name||''}${u.first_name||''}`.trim(),
+        number: u.number,
+      })).filter(u=>u.name);
+      const newOnes = names.filter(u=>!state.workers.some(w=>w.name===u.name));
+      if(newOnes.length===0){
+        $result.innerHTML = `<div class="ss-hint">${data.count||0}名を取得しましたが、すべて登録済みの人員名と一致しました。</div>`;
+        return;
+      }
+      $result.innerHTML = `
+        <div class="ss-hint" style="margin-bottom:8px;">${data.count}名中、未登録の${newOnes.length}名が見つかりました。登録する人を選んでください。</div>
+        ${newOnes.map((u,i)=>`
+          <label class="ss-toggle-row" style="cursor:pointer;border-bottom:1px dashed var(--line);padding:6px 0;">
+            <span>${u.name}${u.number?` <span class="mono" style="color:var(--muted);font-size:11px;">(${u.number})</span>`:''}</span>
+            <input type="checkbox" data-hrmos-user="${i}" checked>
+          </label>
+        `).join('')}
+        <button class="ss-btn teal small" id="hrmos-users-add" style="margin-top:8px;">選択した人員を登録</button>
+      `;
+      document.getElementById('hrmos-users-add').onclick = async()=>{
+        const checked = Array.from(document.querySelectorAll('[data-hrmos-user]:checked')).map(cb=>newOnes[Number(cb.dataset.hrmosUser)]);
+        if(checked.length===0){ toast('選択されていません'); return; }
+        checked.forEach(u=>{
+          state.workers.push({id:uid('w'), name:u.name, type:'社員', skills:[], overtimeHours:0, maxOvertimeHours:45});
+        });
+        await saveMaster();
+        render();
+        toast(`${checked.length}名の人員を登録しました`);
+      };
+    }catch(err){
+      $result.innerHTML = `<div class="ss-alert">⚠ 通信エラーが発生しました：${String(err)}</div>`;
+    }
   }
   function hrmosWorkedMinutes(rec){
     const toMin = (t)=>{ if(!t) return null; const [h,m] = t.split(':').map(Number); return h*60+m; };

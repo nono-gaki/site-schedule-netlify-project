@@ -1,12 +1,36 @@
-// HRMOS勤怠(旧IEYASU勤怠)から月次の日次勤怠データを取得する。
-// GET /.netlify/functions/hrmos?month=YYYY-MM
-//   -> { month, count, records: [...] }
+// HRMOS勤怠(旧IEYASU勤怠)から勤怠データ・ユーザー一覧を取得する。
+// GET /.netlify/functions/hrmos?month=YYYY-MM             -> { month, count, records: [...] }（日次勤怠データ）
+// GET /.netlify/functions/hrmos?resource=users            -> { count, users: [...] }（ユーザー一覧）
 // 認証情報(Secret Key・会社URL)はサーバー側の環境変数のみで使用し、クライアントには渡さない。
 //
 // 認証フロー:
 //   1. Secret KeyでBasic認証し、GET /authentication/token でTokenを取得
 //   2. 以降のリクエストは Authorization: Token <token> ヘッダーで認証
-//   3. GET /work_outputs/monthly/{month} で指定月の全社員の日次勤怠データを取得（ページネーションあり）
+//   3. 用途に応じて work_outputs/monthly/{month} または users を取得（いずれもページネーションあり）
+
+async function fetchPaginated(base, token, path) {
+  let items = [];
+  let page = 1;
+  const limit = 100;
+  while (true) {
+    const res = await fetch(`${base}${path}${path.includes('?') ? '&' : '?'}limit=${limit}&page=${page}`, {
+      method: 'GET',
+      headers: { Authorization: `Token ${token}` },
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      const err = new Error('HRMOS data request failed');
+      err.status = res.status;
+      err.detail = detail;
+      throw err;
+    }
+    const chunk = await res.json();
+    items = items.concat(chunk);
+    if (!Array.isArray(chunk) || chunk.length < limit || page > 50) break;
+    page++;
+  }
+  return items;
+}
 
 export default async (req) => {
   if (req.method !== 'GET') {
@@ -23,8 +47,9 @@ export default async (req) => {
   }
 
   const url = new URL(req.url);
+  const resource = url.searchParams.get('resource') || 'work_outputs';
   const month = url.searchParams.get('month');
-  if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+  if (resource === 'work_outputs' && (!month || !/^\d{4}-\d{2}$/.test(month))) {
     return new Response(JSON.stringify({ error: 'month is required in YYYY-MM format' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
@@ -49,35 +74,23 @@ export default async (req) => {
     }
     const { token } = await tokenRes.json();
 
-    // 2. Tokenで月次日次勤怠データを取得（ページネーション対応）
-    let records = [];
-    let page = 1;
-    const limit = 100;
-    while (true) {
-      const dataRes = await fetch(`${base}/work_outputs/monthly/${month}?limit=${limit}&page=${page}`, {
-        method: 'GET',
-        headers: { Authorization: `Token ${token}` },
+    // 2. 用途に応じてデータを取得
+    if (resource === 'users') {
+      const users = await fetchPaginated(base, token, '/users');
+      return new Response(JSON.stringify({ count: users.length, users }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
       });
-      if (!dataRes.ok) {
-        const detail = await dataRes.text();
-        return new Response(JSON.stringify({ error: 'HRMOS data request failed', status: dataRes.status, detail }), {
-          status: 502,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      const chunk = await dataRes.json();
-      records = records.concat(chunk);
-      if (!Array.isArray(chunk) || chunk.length < limit || page > 50) break;
-      page++;
     }
 
+    const records = await fetchPaginated(base, token, `/work_outputs/monthly/${month}`);
     return new Response(JSON.stringify({ month, count: records.length, records }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
+    return new Response(JSON.stringify({ error: String(err.message || err), status: err.status, detail: err.detail }), {
+      status: err.status ? 502 : 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
