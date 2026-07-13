@@ -314,6 +314,7 @@
     '板金加工': {duration:1, unit:'時間', count:1},
     'コーキング': {duration:1, unit:'時間', count:1},
   };
+  const STANDALONE_WORK_TYPES = ['修理','給排水工事','電気工事','シンク穴開け','板金加工','コーキング'];
   let state = { equipmentTypes: [], workTypes: [], specialWorks: [], workers: [], vendors: [], disposalSites: [], projects: [], templates: [], calendars: [] };
   let tab = 'calendar';
   let calMonth = new Date(); calMonth.setDate(1);
@@ -388,7 +389,7 @@
   function isMobileViewport(){ return window.innerWidth <= 640; }
   function yen(n){ return '¥' + (Number(n)||0).toLocaleString(); }
   function comboLabel(p){
-    if(!p.equipmentTypeId) return '';
+    if(!p.equipmentTypeId) return p.workTypeId ? wtName(p.workTypeId) : '';
     return eqName(p.equipmentTypeId) + (p.workTypeId?('／'+wtName(p.workTypeId)):'');
   }
   function toast(msg){
@@ -499,7 +500,7 @@
   function vendorsForCombo(equipmentTypeId, workTypeId){
     return state.vendors.filter(v => (v.equipmentTypeIds||[]).includes(equipmentTypeId) && (v.workTypeIds||[]).includes(workTypeId));
   }
-  function findTemplate(eq, wt){ return state.templates.find(t=>t.equipmentTypeId===eq && t.workTypeId===wt); }
+  function findTemplate(eq, wt){ return state.templates.find(t=>(t.equipmentTypeId||null)===(eq||null) && t.workTypeId===wt); }
   function addDays(dateStr, n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return fmtDate(d); }
 
   // ---------- 日本の祝日（1980-2099年の近似式・ハッピーマンデー対応） ----------
@@ -545,7 +546,7 @@
     if(!holidayCache[y]) holidayCache[y] = japaneseHolidaysForYear(y);
     return holidayCache[y][dateStr] || null;
   }
-  function templateLabel(t){ return `${eqName(t.equipmentTypeId)}／${wtName(t.workTypeId)}`; }
+  function templateLabel(t){ return t.equipmentTypeId ? `${eqName(t.equipmentTypeId)}／${wtName(t.workTypeId)}` : `${wtName(t.workTypeId)}（機器を問わない）`; }
   async function resolveNamedWorkers(names, equipmentTypeId, workTypeId){
     if(!names || names.length===0) return [];
     let created = false;
@@ -786,7 +787,7 @@
         <div class="ss-card-title">工事内容テンプレート <small>機器×作業内容ごとの標準時間・標準人数。AIチャットの提案にも使われます</small></div>
         <button class="ss-btn ghost small" id="tp-bulk-create" style="margin-bottom:10px;">作業内容の基本ルールから一括登録</button>
         <div class="ss-row">
-          <select id="tp-eq">${state.equipmentTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
+          <select id="tp-eq"><option value="">機器を問わない</option>${state.equipmentTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
           <select id="tp-wt">${state.workTypes.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
           <input type="number" id="tp-duration" min="0" step="0.5" placeholder="標準時間" style="max-width:100px;">
           <select id="tp-unit" style="max-width:90px;"><option value="時間">時間</option><option value="日">日</option></select>
@@ -874,33 +875,46 @@
       const matched = state.workTypes.filter(wt=>WORK_DURATION_RULES[wt.name]);
       const unmatched = state.workTypes.filter(wt=>!WORK_DURATION_RULES[wt.name]);
       if(matched.length===0){ toast('ルールに一致する作業内容が登録されていません'); return; }
-      if(!confirm(`登録済みの機器種類 × 作業内容ルールに一致する組み合わせ（最大${state.equipmentTypes.length * matched.length}件）でテンプレートを作成・上書きします。よろしいですか？`)) return;
+      if(!confirm(`登録済みの機器種類 × 作業内容ルールに一致する組み合わせでテンプレートを作成・上書きします（修理・給排水工事・電気工事・シンク穴開け・板金加工・コーキングは機器を問わない単独テンプレートになります）。よろしいですか？`)) return;
       let created=0, updated=0;
-      state.equipmentTypes.forEach(eq=>{
-        matched.forEach(wt=>{
-          const rule = WORK_DURATION_RULES[wt.name];
-          const existing = findTemplate(eq.id, wt.id);
+      matched.forEach(wt=>{
+        const rule = WORK_DURATION_RULES[wt.name];
+        if(STANDALONE_WORK_TYPES.includes(wt.name)){
+          // 過去に誤って機器種類ごとに作られた分を単独テンプレートへ統合する
+          state.templates = state.templates.filter(t=>!(t.workTypeId===wt.id && t.equipmentTypeId));
+          const existing = findTemplate(null, wt.id);
           if(existing){
             existing.durationValue = rule.duration; existing.durationUnit = rule.unit; existing.requiredCount = rule.count;
             updated++;
           } else {
-            state.templates.push({id:uid('tp'), equipmentTypeId:eq.id, workTypeId:wt.id, durationValue:rule.duration, durationUnit:rule.unit, requiredCount:rule.count, specialWorkIds:[]});
+            state.templates.push({id:uid('tp'), equipmentTypeId:null, workTypeId:wt.id, durationValue:rule.duration, durationUnit:rule.unit, requiredCount:rule.count, specialWorkIds:[]});
             created++;
           }
-        });
+        } else {
+          state.equipmentTypes.forEach(eq=>{
+            const existing = findTemplate(eq.id, wt.id);
+            if(existing){
+              existing.durationValue = rule.duration; existing.durationUnit = rule.unit; existing.requiredCount = rule.count;
+              updated++;
+            } else {
+              state.templates.push({id:uid('tp'), equipmentTypeId:eq.id, workTypeId:wt.id, durationValue:rule.duration, durationUnit:rule.unit, requiredCount:rule.count, specialWorkIds:[]});
+              created++;
+            }
+          });
+        }
       });
       await saveMaster();
       renderTemplateList();
       toast(`${created}件登録・${updated}件更新しました${unmatched.length?`（「${unmatched.map(w=>w.name).join('、')}」はルール対象外のためスキップ）`:''}`);
     };
     document.getElementById('tp-add').onclick = async ()=>{
-      const equipmentTypeId = document.getElementById('tp-eq').value;
+      const equipmentTypeId = document.getElementById('tp-eq').value || null;
       const workTypeId = document.getElementById('tp-wt').value;
       const durationValue = Number(document.getElementById('tp-duration').value);
       const durationUnit = document.getElementById('tp-unit').value;
       const requiredCount = Number(document.getElementById('tp-count').value);
       const specialWorkIds = tpSelectedSpecialWorkIds.slice();
-      if(!equipmentTypeId || !workTypeId){ toast('機器種類・作業内容が未登録です'); return; }
+      if(!workTypeId){ toast('作業内容を選択してください'); return; }
       if(!durationValue || !requiredCount){ toast('標準時間と標準人数を入力してください'); return; }
       const existing = findTemplate(equipmentTypeId, workTypeId);
       if(existing){ existing.durationValue=durationValue; existing.durationUnit=durationUnit; existing.requiredCount=requiredCount; existing.specialWorkIds=specialWorkIds; }
@@ -1054,7 +1068,7 @@
       ${state.templates.map(t=>`
         <tr data-tpl-id="${t.id}">
           <td class="ss-drag-handle" data-drag-tpl="${t.id}" title="ドラッグで並び替え">⠿</td>
-          <td><select data-tpl="${t.id}" data-field="equipmentTypeId">${state.equipmentTypes.map(eq=>`<option value="${eq.id}" ${t.equipmentTypeId===eq.id?'selected':''}>${eq.name}</option>`).join('')}</select></td>
+          <td><select data-tpl="${t.id}" data-field="equipmentTypeId"><option value="" ${!t.equipmentTypeId?'selected':''}>問わない</option>${state.equipmentTypes.map(eq=>`<option value="${eq.id}" ${t.equipmentTypeId===eq.id?'selected':''}>${eq.name}</option>`).join('')}</select></td>
           <td><select data-tpl="${t.id}" data-field="workTypeId">${state.workTypes.map(wt=>`<option value="${wt.id}" ${t.workTypeId===wt.id?'selected':''}>${wt.name}</option>`).join('')}</select></td>
           <td><input type="number" min="0" step="0.5" data-tpl="${t.id}" data-field="durationValue" value="${t.durationValue}" style="width:70px;"></td>
           <td><select data-tpl="${t.id}" data-field="durationUnit" style="width:75px;"><option value="時間" ${t.durationUnit==='時間'?'selected':''}>時間</option><option value="日" ${t.durationUnit==='日'?'selected':''}>日</option></select></td>
@@ -1074,7 +1088,9 @@
         const tpl = state.templates.find(t=>t.id===inp.dataset.tpl);
         if(!tpl) return;
         const field = inp.dataset.field;
-        tpl[field] = (field==='durationValue'||field==='requiredCount') ? (Number(inp.value)||0) : inp.value;
+        if(field==='durationValue'||field==='requiredCount') tpl[field] = Number(inp.value)||0;
+        else if(field==='equipmentTypeId') tpl[field] = inp.value || null;
+        else tpl[field] = inp.value;
         await saveMaster(); renderTemplateList();
       });
     });
@@ -2498,6 +2514,9 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
 【階段作業について】
 搬入経路に階段がある、エレベーターが無い、階段での運搬になる、といった言及があった場合は fields.stairs を true にしてください。標準人数への+2名の加算はシステム側で自動的に行うため、あなたが人数を書き換える必要はありません。
 
+【機器種類を問わない作業内容について】
+作業内容が「修理」「給排水工事」「電気工事」「シンク穴開け」「板金加工」「コーキング」のいずれかの場合、機器種類は特定の機器と紐づかない単独の作業として扱ってください。ユーザーが対象機器を明言しない限り fields.equipmentTypeId は null のままにしてください（無理に機器種類を推測しないでください）。
+
 【重要】以下の場合は status を "ready" にする前に、必ず追加で1つずつ質問してください：
 - 登録済み人員が0人、またはユーザーが言及した担当者の名前が登録済み人員に見つからない場合 → 「今回担当される方のお名前を教えてください（複数可）」のように質問し、fields.newWorkerNames に名前の配列を入れてください。
 - 選択された機器種類×作業内容の組み合わせのテンプレートが登録済みテンプレートに存在しない場合 → 「標準的な作業時間と人数を教えてください（今後のテンプレートとして登録します）」のように質問し、fields.newTemplateDuration（数値）、fields.newTemplateUnit（"時間"か"日"）、fields.newTemplateCount（人数）を埋めてください。
@@ -2618,7 +2637,7 @@ ${upcoming.length ? upcoming.join('\n') : '（登録済み予定なし）'}
   function renderProposalCardHtml(p){
     return `<div class="ss-proposal-card">
       <div class="ptitle">📋 提案：${p.name}</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;" class="mono">${p.start}${p.start!==p.end?(' 〜 '+p.end):''} ／ ${eqName(p.equipmentTypeId)}／${wtName(p.workTypeId)} ／ 想定時間:${p.estimatedHours}</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;" class="mono">${p.start}${p.start!==p.end?(' 〜 '+p.end):''} ／ ${comboLabel(p)} ／ 想定時間:${p.estimatedHours}</div>
       <div class="ss-subhead" style="margin:6px 0 4px;">推奨人員（内部）</div>
       ${p.picked.length===0 ? '<div class="ss-empty" style="padding:2px;">候補なし</div>' :
         p.picked.map(w=>`<span class="ss-skillchip"><span class="lv">${levelLabel(w.skill)}</span>${w.name}<span style="color:var(--muted);font-size:10px;margin-left:3px;">(残業${w.overtimeHours}h)</span></span>`).join('')}
