@@ -324,7 +324,7 @@
     'コーキング': {duration:1, unit:'時間', count:1},
   };
   const STANDALONE_WORK_TYPES = ['修理','給排水工事','電気工事','シンク穴開け','板金加工','コーキング','棚取り付け'];
-  let state = { equipmentTypes: [], workTypes: [], specialWorks: [], workers: [], vendors: [], disposalSites: [], projects: [], templates: [], calendars: [] };
+  let state = { equipmentTypes: [], workTypes: [], specialWorks: [], statusTags: [], workers: [], vendors: [], disposalSites: [], projects: [], templates: [], calendars: [] };
   let tab = 'calendar';
   let calMonth = new Date(); calMonth.setDate(1);
   let calVisible = {}; // calendarId -> bool
@@ -374,6 +374,8 @@
   function wtName(id){ const w=state.workTypes.find(w=>w.id===id); return w?w.name:''; }
   function swName(id){ const s=state.specialWorks.find(s=>s.id===id); return s?s.name:''; }
   function swNames(ids){ return (ids||[]).map(swName).filter(Boolean).join('、'); }
+  function statusTagName(id){ const s=(state.statusTags||[]).find(s=>s.id===id); return s?s.name:''; }
+  function eventTitle(p){ return p.statusTagId ? `【${statusTagName(p.statusTagId)}】${p.name}` : p.name; }
   function worker(id){ return state.workers.find(w=>w.id===id); }
   function vendor(id){ return state.vendors.find(v=>v.id===id); }
   function surnameOf(name){ return (name||'').trim().split(/[\s　]+/)[0] || name; }
@@ -431,6 +433,7 @@
       state.equipmentTypes = master.equipmentTypes || [];
       state.workTypes = master.workTypes || [];
       state.specialWorks = master.specialWorks || [];
+      state.statusTags = master.statusTags || [];
       state.workers = master.workers || [];
       state.vendors = master.vendors || [];
       state.disposalSites = master.disposalSites || [];
@@ -441,6 +444,7 @@
       state.equipmentTypes = ['製氷機','縦型冷蔵庫','エアコン','洗浄機'].map(n=>({id:uid('eq'),name:n}));
       state.workTypes = ['新規設置','入替え','廃棄','修理'].map(n=>({id:uid('wt'),name:n}));
       state.specialWorks = [];
+      state.statusTags = ['引き取り済み','荷受け済み'].map(n=>({id:uid('st'),name:n}));
       state.workers = [];
       state.vendors = [];
       state.disposalSites = [];
@@ -459,6 +463,11 @@
       oldGenba.name = '現場以外';
       await saveMaster();
     }
+    // 既存データにステータスタグが無い場合、初期タグを登録
+    if(master && master.statusTags===undefined){
+      state.statusTags = ['引き取り済み','荷受け済み'].map(n=>({id:uid('st'),name:n}));
+      await saveMaster();
+    }
     state.calendars.forEach(c=>{ if(!(c.id in calVisible)) calVisible[c.id]=true; });
     if(projects){
       state.projects = projects.projects || [];
@@ -468,7 +477,7 @@
     }
   }
   async function saveMaster(){
-    try{ await apiSet('master-data-v4', {equipmentTypes:state.equipmentTypes, workTypes:state.workTypes, specialWorks:state.specialWorks, workers:state.workers, vendors:state.vendors, disposalSites:state.disposalSites, templates:state.templates, calendars:state.calendars, aiNotes:state.aiNotes}); }
+    try{ await apiSet('master-data-v4', {equipmentTypes:state.equipmentTypes, workTypes:state.workTypes, specialWorks:state.specialWorks, statusTags:state.statusTags, workers:state.workers, vendors:state.vendors, disposalSites:state.disposalSites, templates:state.templates, calendars:state.calendars, aiNotes:state.aiNotes}); }
     catch(e){ console.error('save master failed', e); toast('⚠ 保存に失敗しました。通信環境をご確認ください'); }
   }
   async function saveProjects(){
@@ -685,7 +694,7 @@
             <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);">
               <span class="ss-dot" style="background:${eventColor(p)}"></span>
               <div style="flex:1;">
-                <b>${p.startTime?(p.startTime+' '):''}${p.name}</b> <span class="mono" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</span><br>
+                <b>${p.startTime?(p.startTime+' '):''}${eventTitle(p)}</b> <span class="mono" style="color:var(--muted);font-size:11px;">${calName(p.calendarId)}${comboLabel(p)?(' / '+comboLabel(p)):''}${p.address?(' / '+p.address):''}${p.url?' / 🔗':''}</span><br>
                 <span style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}${(p.vendorEntries||[]).length?` + 外注:${p.vendorEntries.map(v=>`${v.vendorName}${(v.count||1)>1?`×${v.count}`:''}`).join('、')}`:''}</span>
               </div>
             </div>
@@ -703,6 +712,9 @@
     if(type==='wt') return { list: state.workTypes, cleanup:(id)=>{
       state.workers.forEach(w=>{ w.skills=(w.skills||[]).filter(s=>s.workTypeId!==id); });
       state.templates = state.templates.filter(t=>t.workTypeId!==id);
+    }};
+    if(type==='status') return { list: state.statusTags, cleanup:(id)=>{
+      state.projects.forEach(p=>{ if(p.statusTagId===id) p.statusTagId=null; });
     }};
     return { list: state.specialWorks, cleanup:(id)=>{
       state.templates.forEach(t=>{ t.specialWorkIds=(t.specialWorkIds||[]).filter(x=>x!==id); });
@@ -733,11 +745,13 @@
     };
     document.getElementById('chip-menu-delete').onclick = async()=>{
       if(!confirm('この項目を消去しますか？関連するスキル・テンプレートからも削除されます。')){ return; }
-      const { list, cleanup } = chipTypeConfig(chipMenuState.type);
+      const type = chipMenuState.type;
+      const { list, cleanup } = chipTypeConfig(type);
       const id = chipMenuState.id;
-      chipTypeConfig(chipMenuState.type).list.splice(list.findIndex(x=>x.id===id), 1);
+      chipTypeConfig(type).list.splice(list.findIndex(x=>x.id===id), 1);
       cleanup(id);
       await saveMaster();
+      if(type==='status') await saveProjects();
       chipMenuState = null;
       render();
     };
@@ -812,6 +826,9 @@
         <div class="ss-subhead">特殊作業</div>
         <div id="ss-sw"></div>
         <div class="ss-row" style="margin-top:6px;"><input type="text" id="new-sw" placeholder="例：冷媒工事"><button class="ss-btn ghost small" id="add-sw" style="flex:0 0 auto;">追加</button></div>
+        <div class="ss-subhead">ステータスタグ <small>予定タイトルの先頭に【】付きで表示されます</small></div>
+        <div id="ss-status"></div>
+        <div class="ss-row" style="margin-top:6px;"><input type="text" id="new-status" placeholder="例：引き取り済み"><button class="ss-btn ghost small" id="add-status" style="flex:0 0 auto;">追加</button></div>
       </div>
 
       <div class="ss-card">
@@ -894,6 +911,12 @@
     document.getElementById('add-sw').onclick = async()=>{
       const v = document.getElementById('new-sw').value.trim(); if(!v) return;
       state.specialWorks.push({id:uid('sw'),name:v}); render(); saveMaster();    };
+
+    document.getElementById('ss-status').innerHTML = renderChipsHtml('status');
+    attachChipInteractions('ss-status', 'status');
+    document.getElementById('add-status').onclick = async()=>{
+      const v = document.getElementById('new-status').value.trim(); if(!v) return;
+      state.statusTags.push({id:uid('st'),name:v}); render(); saveMaster();    };
 
     renderDisposalList();
     document.getElementById('add-disposal').onclick = async()=>{
@@ -1412,7 +1435,7 @@
       const dow = cellDate.getDay();
       const dNumClass = (dow===0 || isJapaneseHoliday(dateStr)) ? 'sun' : dow===6 ? 'sat' : '';
       html += `<div class="ss-cal-cell ${dateStr===today?'today':''} ${inMonth?'':'other-month'} ${dateStr===calSelectedDate?'selected':''}" data-day="${dateStr}"><div class="d ${dNumClass}">${cellDate.getDate()}</div>
-        ${shown.map(p=>`<div class="ss-cal-item" style="background:${eventColor(p)}" title="${p.name}">${p.name}${p.url?' 🔗':''}</div>`).join('')}
+        ${shown.map(p=>`<div class="ss-cal-item" style="background:${eventColor(p)}" title="${eventTitle(p)}">${eventTitle(p)}${p.url?' 🔗':''}</div>`).join('')}
         ${overflow>0 ? `<div class="ss-cal-more">+${overflow}</div>` : ''}
       </div>`;
     }
@@ -1432,7 +1455,7 @@
           <div class="ss-daylist-item" data-side-open-event="${p.id}">
             <span class="ss-dot" style="background:${eventColor(p)}"></span>
             <div style="flex:1;">
-              <b>${p.startTime?(p.startTime+' '):''}${p.name}</b>
+              <b>${p.startTime?(p.startTime+' '):''}${eventTitle(p)}</b>
               ${[comboLabel(p), p.address, p.url?'🔗':''].filter(Boolean).length ? `<div class="mono meta" style="color:var(--muted);font-size:11px;">${[comboLabel(p), p.address, p.url?'🔗':''].filter(Boolean).join(' / ')}</div>` : ''}
               <div class="meta" style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}</div>
             </div>
@@ -1617,7 +1640,7 @@
             <div class="ss-daylist-item" data-open-event="${p.id}">
               <span class="ss-dot" style="background:${eventColor(p)}"></span>
               <div style="flex:1;">
-                <b>${p.startTime?(p.startTime+' '):''}${p.name}</b>
+                <b>${p.startTime?(p.startTime+' '):''}${eventTitle(p)}</b>
                 ${[comboLabel(p), p.address, p.url?'🔗':''].filter(Boolean).length ? `<div class="mono meta" style="color:var(--muted);font-size:11px;">${[comboLabel(p), p.address, p.url?'🔗':''].filter(Boolean).join(' / ')}</div>` : ''}
                 <div class="meta" style="font-size:12px;color:var(--muted);">${(p.assignedWorkerIds||[]).map(id=>worker(id)?worker(id).name:'').filter(Boolean).join('、') || '未割当'}</div>
               </div>
@@ -1738,7 +1761,7 @@
             </div>` : ''}
           </div>
         </div>
-        <div class="ss-detail-title" style="color:${color};">${p.name}</div>
+        <div class="ss-detail-title" style="color:${color};">${eventTitle(p)}</div>
         <div class="ss-detail-datebox">
           <div class="ss-detail-date-line">${dayLabel(p.start)}${p.start!==p.end ? (' 〜 '+dayLabel(p.end)) : ''}</div>
           <div class="ss-detail-time-row">
@@ -1985,7 +2008,7 @@
       if(searchModal.startDate && p.end < searchModal.startDate) return false;
       if(searchModal.endDate && p.start > searchModal.endDate) return false;
       if(!q) return true;
-      const hay = [p.name, p.workDetail, p.address, comboLabel(p)].join(' ').toLowerCase();
+      const hay = [p.name, p.workDetail, p.address, comboLabel(p), statusTagName(p.statusTagId)].join(' ').toLowerCase();
       return hay.includes(q);
     }).sort((a,b)=> a.start<b.start ? -1 : a.start>b.start ? 1 : 0);
     $results.innerHTML = results.length===0 ? `<div class="ss-empty">該当する予定がありません。</div>` :
@@ -1993,7 +2016,7 @@
         <div class="ss-daylist-item" data-search-open="${p.id}">
           <span class="ss-dot" style="background:${eventColor(p)}"></span>
           <div style="flex:1;">
-            <b>${p.name}</b>
+            <b>${eventTitle(p)}</b>
             <div class="mono meta" style="color:var(--muted);font-size:11px;">${dayLabel(p.start)}${p.start!==p.end?(' 〜 '+dayLabel(p.end)):''}${p.startTime?(' '+p.startTime):''}</div>
           </div>
         </div>
@@ -2033,7 +2056,7 @@
     searchModal = null;
     if(mode==='new'){
       eventModal = { mode:'new', data:{
-        name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'',
+        name:'', address:'', salesRep:'', workDetail:'', equipmentTypeId:'', workTypeId:'', statusTagId:null,
         requiredLevel:2, start:dateStr, end:dateStr, allDay:false, startTime:'09:00', endTime:'10:00', url:'', requiredCount:1,
         assignedWorkerIds:[], outsourceCount:0, vendorEntries:[], budgetAmount:0, actualAmount:0,
         calendarId: mainCalendarId(), images:[], color:getLastUsedColor(),
@@ -2077,6 +2100,11 @@
 
         <div class="ss-modal-section">
           <input type="text" id="ev-name" value="${d.name||''}" placeholder="タイトルを入力" class="ss-title-input">
+          ${state.statusTags.length ? `
+          <div class="ss-field" style="margin-top:10px;">
+            <label>ステータスタグ</label>
+            <div id="ev-status-tags">${state.statusTags.map(s=>`<span class="ss-chiptoggle ${d.statusTagId===s.id?'on':''}" data-ev-status="${s.id}">${s.name}</span>`).join('')}</div>
+          </div>` : ''}
           <div class="ss-field" style="margin-top:12px;"><label>カレンダー</label>
             <select id="ev-calendar">${state.calendars.map(c=>`<option value="${c.id}" ${d.calendarId===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
           </div>
@@ -2385,6 +2413,12 @@
         rerenderEventModal();
       });
     }
+    document.querySelectorAll('#ev-status-tags [data-ev-status]').forEach(chip=>chip.onclick=()=>{
+      syncEvFormToData();
+      const id = chip.dataset.evStatus;
+      d.statusTagId = (d.statusTagId===id) ? null : id;
+      rerenderEventModal();
+    });
     const urlClear = document.getElementById('ev-url-clear');
     if(urlClear) urlClear.onclick = ()=>{ syncEvFormToData(); d.url=''; rerenderEventModal(); };
     const memoClear = document.getElementById('ev-memo-clear');
@@ -2459,7 +2493,7 @@
         const removedKeys = (eventModal.originalImageKeys||[]).filter(k=>!images.some(im=>im.key===k));
         for(const key of removedKeys){ await apiDeleteKey(key); }
         const payload = {
-          name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||2,
+          name, address, salesRep, workDetail, equipmentTypeId, workTypeId, requiredLevel: d.requiredLevel||2, statusTagId: d.statusTagId||null,
           start, end, allDay: d.allDay, startTime, endTime, url, requiredCount, assignedWorkerIds: d.assignedWorkerIds||[], outsourceCount: 0,
           vendorEntries: d.vendorEntries||[], budgetAmount, actualAmount, calendarId, images, color: d.color||null,
         };
@@ -2561,7 +2595,7 @@
     const horizon = addDays(today, 14);
     const upcoming = state.projects.filter(p=>p.start>=today && p.start<=horizon)
       .sort((a,b)=> a.start<b.start?-1:1)
-      .map(p=>`${p.start}${p.startTime?(' '+p.startTime):''} ${p.name}${p.address?'（'+p.address+'）':''}`);
+      .map(p=>`${p.start}${p.startTime?(' '+p.startTime):''} ${eventTitle(p)}${p.address?'（'+p.address+'）':''}`);
 
     let disposalContext = '';
     if(state.disposalSites.length){
